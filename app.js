@@ -54,11 +54,20 @@
   const DEFAULT_RENDER_SECONDS = 24;
   const SAMPLE_RATE = 44100;
   const BACKEND_URL = "http://localhost:8000/api/process-track";
-  const TRACK_SIMULATED_METADATA = {
-    drums: { originalBpm: 120, originalKeyId: 0 },
-    bass: { originalBpm: 120, originalKeyId: 0 },
-    melody: { originalBpm: 120, originalKeyId: 0 },
-    voice: { originalBpm: 120, originalKeyId: 0 },
+  const ANALYZE_URL = "http://localhost:8000/api/analyze-track";
+  const SEMITONE_TO_NOTE = {
+    0: "C",
+    1: "C#",
+    2: "D",
+    3: "D#",
+    4: "E",
+    5: "F",
+    6: "F#",
+    7: "G",
+    8: "G#",
+    9: "A",
+    10: "A#",
+    11: "B",
   };
 
   const state = {
@@ -124,6 +133,8 @@
         userVolume: Number(volume.value),
         processing: false,
         requestController: null,
+        detectedBpm: null,
+        detectedKeyId: null,
         processedBpm: null,
         processedKeyId: null,
         bars: [],
@@ -266,9 +277,9 @@
     track.file = file;
     track.fileLabel.textContent = file.name;
     track.processing = true;
-    track.trackState.textContent = "PROCESSING IN PYTHON BACKEND...";
+    track.trackState.textContent = "ANALYZING AUDIO...";
     track.panel.classList.add("has-audio", "is-processing");
-    setStatus(`Processando ${file.name} no backend Python...`, "loading");
+    setStatus(`Analisando ${file.name}...`, "loading");
 
     if (track.requestController) {
       track.requestController.abort();
@@ -278,6 +289,18 @@
     track.requestController = controller;
 
     try {
+      const detected = await analyzeAudioMetadata(file, controller.signal);
+      
+      if (track.requestController !== controller) {
+        return;
+      }
+
+      track.detectedBpm = detected.original_bpm;
+      track.detectedKeyId = detected.original_key_id;
+      
+      track.trackState.textContent = "PROCESSING IN PYTHON BACKEND...";
+      setStatus(`Detectado: ${detected.original_bpm.toFixed(1)} BPM, Tom ${detectIdToNote(detected.original_key_id)}`, "ready");
+      
       const processedBuffer = await processTrackThroughBackend(track, file, controller.signal);
       if (track.requestController !== controller) {
         return;
@@ -322,12 +345,33 @@
     }
   }
 
+  function detectIdToNote(id) {
+    return SEMITONE_TO_NOTE[id] || "C";
+  }
+
+  async function analyzeAudioMetadata(file, signal) {
+    const formData = new FormData();
+    formData.append("arquivo", file);
+
+    const response = await fetch(ANALYZE_URL, {
+      method: "POST",
+      body: formData,
+      signal,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || `Analyze failed with status ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   async function processTrackThroughBackend(track, file, signal) {
-    const metadata = TRACK_SIMULATED_METADATA[track.id] || TRACK_SIMULATED_METADATA.drums;
     const formData = new FormData();
     formData.append("instrumento", track.id);
-    formData.append("original_bpm", String(metadata.originalBpm));
-    formData.append("original_key_id", String(metadata.originalKeyId));
+    formData.append("original_bpm", String(track.detectedBpm || 120));
+    formData.append("original_key_id", String(track.detectedKeyId || 0));
     formData.append("target_bpm", String(Number(els.bpmGlobal.value)));
     formData.append("target_key_id", String(noteToSemitone(els.keyGlobal.value)));
     formData.append("arquivo", file, file.name);
@@ -726,6 +770,28 @@
     const target = noteToSemitone(targetKey);
     const delta = target - source;
     return delta > 6 ? delta - 12 : delta < -6 ? delta + 12 : delta;
+  }
+
+  function detectIdToNote(id) {
+    return SEMITONE_TO_NOTE[id] || "C";
+  }
+
+  async function analyzeAudioMetadata(file, signal) {
+    const formData = new FormData();
+    formData.append("arquivo", file);
+
+    const response = await fetch(ANALYZE_URL, {
+      method: "POST",
+      body: formData,
+      signal,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || `Analyze failed with status ${response.status}`);
+    }
+
+    return response.json();
   }
 
   window.MaquinaDeRockStudio = {

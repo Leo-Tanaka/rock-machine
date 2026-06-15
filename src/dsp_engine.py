@@ -16,6 +16,29 @@ class MotorDSP:
         self.bpm_global = float(bpm_global)
         self.tom_global_id = int(tom_global_id)
 
+    @staticmethod
+    def detectar_bpm(y: np.ndarray, sr: int) -> float:
+        """Detecta o BPM (tempo) de um áudio usando librosa."""
+        try:
+            onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+            tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)
+            return float(tempo[0]) if isinstance(tempo, np.ndarray) else float(tempo)
+        except Exception as e:
+            print(f"Aviso: Falha na detecção de BPM: {e}. Retornando 120 como padrão.")
+            return 120.0
+
+    @staticmethod
+    def detectar_tom_fundamental(y: np.ndarray, sr: int) -> int:
+        """Detecta o tom fundamental usando chroma e retorna o semitom (0-11)."""
+        try:
+            chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
+            chroma_mean = np.mean(chroma, axis=1)
+            tom_id = int(np.argmax(chroma_mean))
+            return tom_id
+        except Exception as e:
+            print(f"Aviso: Falha na detecção de tom: {e}. Retornando 0 (C) como padrão.")
+            return 0
+
     def processar_faixa(
         self,
         caminho_entrada: str | Path,

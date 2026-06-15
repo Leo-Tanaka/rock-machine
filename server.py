@@ -54,6 +54,43 @@ def javascript_bundle() -> FileResponse:
     return FileResponse(BASE_DIR / "app.js", media_type="application/javascript")
 
 
+def _detect_audio_metadata(caminho_arquivo: Path) -> tuple[float, int]:
+    """Função auxiliar para detectar BPM e tom de um arquivo de áudio."""
+    import librosa
+    y, sr = librosa.load(str(caminho_arquivo), sr=None, mono=True)
+    bpm = MotorDSP.detectar_bpm(y, sr)
+    tom_id = MotorDSP.detectar_tom_fundamental(y, sr)
+    return bpm, tom_id
+
+
+@app.post("/api/analyze-track")
+async def analyze_track(
+    arquivo: UploadFile = File(...),
+):
+    """Analisa um arquivo de áudio e retorna BPM e tom detectados."""
+    if arquivo.content_type not in {"audio/mpeg", "audio/wav", "audio/x-wav", "application/octet-stream"}:
+        raise HTTPException(status_code=400, detail="Formato de arquivo não suportado.")
+
+    request_id = uuid.uuid4().hex
+    original_suffix = Path(arquivo.filename or "upload.wav").suffix.lower() or ".wav"
+    upload_path = UPLOADS_DIR / f"analysis-{request_id}{original_suffix}"
+
+    with upload_path.open("wb") as destination:
+        shutil.copyfileobj(arquivo.file, destination)
+
+    try:
+        bpm, tom_id = await asyncio.to_thread(_detect_audio_metadata, upload_path)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Falha ao analisar áudio: {exc}") from exc
+    finally:
+        arquivo.file.close()
+
+    return {
+        "original_bpm": bpm,
+        "original_key_id": tom_id,
+    }
+
+
 @app.post("/api/process-track")
 async def process_track(
     instrumento: str = Form(...),
@@ -94,4 +131,15 @@ async def process_track(
         path=processed_path,
         media_type="audio/wav",
         filename=processed_path.name,
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+        log_level="info",
     )
