@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Máquina de Rock Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              display: ["Rajdhani", "sans-serif"],
+            },
+            boxShadow: {
+              neon: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(6,182,212,0.22), 0 0 64px rgba(236,72,153,0.12)",
+            },
+            colors: {
+              rock: {
+                bg: "#0f172a",
+                panel: "#111827",
+                line: "#1f2937",
+                cyan: "#06b6d4",
+                emerald: "#10b981",
+                amber: "#f59e0b",
+                pink: "#ec4899",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      html,
+      body {
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(6, 182, 212, 0.12), transparent 28%),
+          radial-gradient(circle at top right, rgba(236, 72, 153, 0.12), transparent 24%),
+          linear-gradient(180deg, #0f172a 0%, #111827 55%, #0b1020 100%);
+      }
+
+      .grain {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 36px 36px;
+      }
+
+      .neon-glow {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 18px rgba(6, 182, 212, 0.14),
+          0 0 42px rgba(236, 72, 153, 0.1);
+      }
+
+      .track-card {
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(15, 23, 42, 0.92));
+      }
+
+      .track-dropzone.is-dragover {
+        border-color: rgba(6, 182, 212, 0.95);
+        background: rgba(6, 182, 212, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .wave-bars {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 3px;
+        align-items: end;
+        height: 42px;
+      }
+
+      .wave-bar {
+        border-radius: 9999px;
+        opacity: 0.2;
+        transform-origin: bottom;
+        transition: opacity 180ms ease, background-color 180ms ease;
+        animation: none;
+      }
+
+      .track-card.is-playing .wave-bar,
+      .track-card.has-audio .wave-bar {
+        opacity: 0.9;
+      }
+
+      .track-card.is-playing .wave-bar {
+        animation: pulseBar 1s ease-in-out infinite;
+      }
+
+      .track-card.is-playing .wave-bar:nth-child(2n) {
+        animation-duration: 0.82s;
+      }
+
+      .track-card.is-playing .wave-bar:nth-child(3n) {
+        animation-duration: 1.14s;
+      }
+
+      @keyframes pulseBar {
+        0%,
+        100% {
+          transform: scaleY(0.32);
+        }
+        35% {
+          transform: scaleY(0.94);
+        }
+        65% {
+          transform: scaleY(0.58);
+        }
+      }
+
+      .pulse-ring {
+        position: relative;
+      }
+
+      .pulse-ring::after {
+        content: "";
+        position: absolute;
+        inset: -4px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        animation: ring 2.8s ease-in-out infinite;
+      }
+
+      @keyframes ring {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: scale(1.03);
+        }
+      }
+    </style>
+    <script defer src="app.js"></script>
+  </head>
+  <body class="text-slate-100 antialiased font-sans">
+    <div class="min-h-screen grain">
+      <main class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
+        <section class="overflow-hidden rounded-3xl border border-white/10 bg-black/20 shadow-neon backdrop-blur-xl">
+          <div class="flex flex-col gap-6 border-b border-white/10 p-6 xl:flex-row xl:items-end xl:justify-between">
+            <div class="max-w-3xl">
+              <p class="mb-3 inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">
+                Web Audio // Live Remix Engine
+              </p>
+              <h1 class="font-display text-4xl font-bold uppercase tracking-[0.18em] text-white sm:text-5xl lg:text-6xl">
+                Máquina de Rock <span class="text-cyan-300">//</span> Digital Jam Studio
+              </h1>
+              <p class="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+                Carregue até quatro stems, sincronize a sessão em tempo real, ajuste volume, mute e solo por trilha e exporte o remix final em WAV.
+              </p>
+            </div>
+
+            <div class="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-3 xl:min-w-[520px]">
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">BPM Global</span>
+                <input id="bpmGlobal" type="range" min="60" max="200" step="1" value="120" class="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-400" />
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                  <span>60</span>
+                  <span id="bpmValue" class="font-semibold text-cyan-300">120 BPM</span>
+                  <span>200</span>
+                </div>
+              </label>
+
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">Tom Global</span>
+                <select id="keyGlobal" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400">
+                  <option value="C">C</option>
+                  <option value="C#">C# / Db</option>
+                  <option value="D">D</option>
+                  <option value="D#">D# / Eb</option>
+                  <option value="E">E</option>
+                  <option value="F">F</option>
+                  <option value="F#">F# / Gb</option>
+                  <option value="G">G</option>
+                  <option value="G#">G# / Ab</option>
+                  <option value="A">A</option>
+                  <option value="A#">A# / Bb</option>
+                  <option value="B">B</option>
+                </select>
+              </label>
+
+              <div class="flex flex-col justify-end gap-2">
+                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">Estado da Sessão</span>
+                <div class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm">
+                  <span id="sessionLed" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span>
+                  <span id="sessionStatus" class="font-semibold text-slate-200">Pronto para carregar stems</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid gap-3 p-6 lg:grid-cols-4">
+            <button id="playSession" class="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-500/20 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+              Play Sessão
+            </button>
+            <button id="pauseSession" class="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-500/20">
+              Pause Sessão
+            </button>
+            <button id="stopSession" class="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-500/20">
+              Parar Tudo
+            </button>
+            <button id="renderMix" class="rounded-2xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-fuchsia-500/20 px-5 py-4 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(16,185,129,0.22)]">
+              Renderizar e Baixar Remix (.WAV)
+            </button>
+          </div>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-2">
+          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="drums">
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">Track 01 // Drums</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Bateria</h2>
+              </div>
+              <div class="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">Cyan Glow</div>
+            </div>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-cyan-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+              <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-400" />
+              </label>
+              <div class="flex gap-3">
+                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Solo</button>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+                  <span>Waveform</span>
+                  <span class="text-cyan-300" data-track-state>Idle</span>
+                </div>
+                <div class="wave-bars" data-waveform></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="bass">
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">Track 02 // Bass</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Baixo</h2>
+              </div>
+              <div class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">Emerald Glow</div>
+            </div>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-emerald-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+              <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-400" />
+              </label>
+              <div class="flex gap-3">
+                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Solo</button>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+                  <span>Waveform</span>
+                  <span class="text-emerald-300" data-track-state>Idle</span>
+                </div>
+                <div class="wave-bars" data-waveform></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="melody">
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300">Track 03 // Melody</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Melodia</h2>
+              </div>
+              <div class="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-200">Amber Glow</div>
+            </div>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-amber-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+              <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-amber-400" />
+              </label>
+              <div class="flex gap-3">
+                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Solo</button>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+                  <span>Waveform</span>
+                  <span class="text-amber-300" data-track-state>Idle</span>
+                </div>
+                <div class="wave-bars" data-waveform></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="voice">
+            <div class="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-pink-300">Track 04 // Voice</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Voz</h2>
+              </div>
+              <div class="rounded-full border border-pink-400/30 bg-pink-400/10 px-3 py-1 text-xs font-semibold text-pink-200">Pink Glow</div>
+            </div>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-pink-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+              <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                </div>
+                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <label class="flex flex-col gap-2 text-sm text-slate-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-pink-400" />
+              </label>
+              <div class="flex gap-3">
+                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Solo</button>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+                  <span>Waveform</span>
+                  <span class="text-pink-300" data-track-state>Idle</span>
+                </div>
+                <div class="wave-bars" data-waveform></div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-sm text-slate-300">
+          <div class="grid gap-4 md:grid-cols-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Sessão</p>
+              <p id="footerSession" class="mt-2 text-base font-semibold text-slate-100">Nenhum áudio reproduzindo</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Dica</p>
+              <p class="mt-2 text-slate-300">Use stems alinhados para loops perfeitos. O export renderiza o mix combinado em WAV.</p>
+            </div>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Compatibilidade</p>
+              <p class="mt-2 text-slate-300">Web Audio API nativa, pronta para acoplar camadas futuras de DSP e time-stretch.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
