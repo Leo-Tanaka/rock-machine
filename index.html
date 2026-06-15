@@ -65,6 +65,14 @@
         transform: translateY(-1px);
       }
 
+      .track-card.is-processing {
+        box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.16), 0 0 34px rgba(6, 182, 212, 0.12);
+      }
+
+      .track-card.is-processing [data-track-state] {
+        color: #67e8f9;
+      }
+
       .wave-bars {
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -237,6 +245,7 @@
               <div class="flex gap-3">
                 <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Mute</button>
                 <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
               </div>
               <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                 <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
@@ -274,6 +283,7 @@
               <div class="flex gap-3">
                 <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Mute</button>
                 <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
               </div>
               <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                 <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
@@ -311,6 +321,7 @@
               <div class="flex gap-3">
                 <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Mute</button>
                 <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
               </div>
               <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                 <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
@@ -348,6 +359,7 @@
               <div class="flex gap-3">
                 <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Mute</button>
                 <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
               </div>
               <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                 <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">

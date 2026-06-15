@@ -1,58 +1,71 @@
-import librosa
-import soundfile as sf
+from __future__ import annotations
+
 import os
 import warnings
+from pathlib import Path
 
-# Ignorar os avisos chatos do PySoundFile no terminal
-warnings.filterwarnings('ignore', category=UserWarning)
+import librosa
+import numpy as np
+import soundfile as sf
+
+warnings.filterwarnings("ignore", category=UserWarning)
+
 
 class MotorDSP:
-    def __init__(self, bpm_global, tom_global_id):
-        self.bpm_global = bpm_global
-        self.tom_global_id = tom_global_id # Ex: 0 = C, 1 = C#, 2 = D... (Simplificado para o MVP)
-        
-    def processar_faixa(self, caminho_entrada, caminho_saida, bpm_original, tom_original_id):
-        print(f"Processando: {caminho_entrada}...")
-        
-        # 1. Carregar o áudio
-        # sr=None mantém a taxa de amostragem original
-        y, sr = librosa.load(caminho_entrada, sr=None)
-        
-        # 2. Sincronia de Tempo (Time-Stretch)
-        # Calcula a razão entre o BPM desejado e o original
-        rate_tempo = self.bpm_global / bpm_original
-        if rate_tempo != 1.0:
-            print(f" -> Ajustando tempo: {bpm_original} BPM para {self.bpm_global} BPM")
-            y = librosa.effects.time_stretch(y, rate=rate_tempo)
-            
-        # 3. Sincronia de Tom (Pitch-Shift)
-        # Calcula a diferença em semitons
-        passos_pitch = self.tom_global_id - tom_original_id
-        if passos_pitch != 0:
-            print(f" -> Ajustando tom: {passos_pitch} semitons")
-            y = librosa.effects.pitch_shift(y, sr=sr, n_steps=passos_pitch)
-            
-        # 4. Salvar o arquivo processado na pasta temp
-        sf.write(caminho_saida, y, sr)
-        print(f"Concluído: {caminho_saida}\n")
-        return caminho_saida
+    def __init__(self, bpm_global: float, tom_global_id: int):
+        self.bpm_global = float(bpm_global)
+        self.tom_global_id = int(tom_global_id)
 
-# --- TESTE DO MOTOR DSP ---
-if __name__ == "__main__":
-    # Configuração Global da nossa "Sessão Jam"
-    motor = MotorDSP(bpm_global=120, tom_global_id=1) # Alvo: 120 BPM, Tom C (Dó)
-    
-    # Simulação: Você tem um baixo de uma música a 100 BPM em Ré (D = ID 2)
-    # Certifique-se de ter um arquivo 'baixo_teste.wav' na pasta assets!
-    caminho_in = "../assets/getlucky_drums.wav"
-    caminho_out = "../temp/bateria_sync.wav"
-    
-    if os.path.exists(caminho_in):
-        motor.processar_faixa(
-            caminho_entrada=caminho_in,
-            caminho_saida=caminho_out,
-            bpm_original=116, 
-            tom_original_id=0 
-        )
-    else:
-        print(f"Erro: Coloque um arquivo de teste em {caminho_in} para testar!")
+    def processar_faixa(
+        self,
+        caminho_entrada: str | Path,
+        caminho_saida: str | Path,
+        bpm_original: float,
+        tom_original_id: int,
+    ) -> str:
+        caminho_entrada = Path(caminho_entrada)
+        caminho_saida = Path(caminho_saida)
+
+        print(f"Processando: {caminho_entrada}...")
+
+        # sr=None preserva a taxa original; mono=False mantém canais quando existirem.
+        y, sr = librosa.load(caminho_entrada, sr=None, mono=False)
+
+        y = self._aplicar_time_stretch(y, float(bpm_original))
+        y = self._aplicar_pitch_shift(y, sr, int(tom_original_id))
+
+        caminho_saida.parent.mkdir(parents=True, exist_ok=True)
+        sf.write(caminho_saida, y.T if y.ndim == 2 else y, sr)
+        print(f"Concluído: {caminho_saida}\n")
+        return str(caminho_saida)
+
+    def _aplicar_time_stretch(self, y: np.ndarray, bpm_original: float) -> np.ndarray:
+        if bpm_original <= 0:
+            return y
+
+        rate_tempo = self.bpm_global / bpm_original
+        if rate_tempo == 1.0:
+            return y
+
+        print(f" -> Ajustando tempo: {bpm_original} BPM para {self.bpm_global} BPM")
+        if y.ndim == 1:
+            return librosa.effects.time_stretch(y, rate=rate_tempo)
+
+        canais = [librosa.effects.time_stretch(canal, rate=rate_tempo) for canal in y]
+        menor_tamanho = min(canal.shape[-1] for canal in canais)
+        canais_alinhados = [canal[..., :menor_tamanho] for canal in canais]
+        return np.vstack(canais_alinhados)
+
+    def _aplicar_pitch_shift(self, y: np.ndarray, sr: int, tom_original_id: int) -> np.ndarray:
+        passos_pitch = self.tom_global_id - tom_original_id
+        if passos_pitch == 0:
+            return y
+
+        print(f" -> Ajustando tom: {passos_pitch} semitons")
+        if y.ndim == 1:
+            return librosa.effects.pitch_shift(y, sr=sr, n_steps=passos_pitch)
+
+        canais = [librosa.effects.pitch_shift(canal, sr=sr, n_steps=passos_pitch) for canal in y]
+        menor_tamanho = min(canal.shape[-1] for canal in canais)
+        canais_alinhados = [canal[..., :menor_tamanho] for canal in canais]
+        return np.vstack(canais_alinhados)

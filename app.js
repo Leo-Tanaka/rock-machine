@@ -53,6 +53,13 @@
   const ACCEPTED_EXTENSIONS = ["mp3", "wav"];
   const DEFAULT_RENDER_SECONDS = 24;
   const SAMPLE_RATE = 44100;
+  const BACKEND_URL = "http://localhost:8000/api/process-track";
+  const TRACK_SIMULATED_METADATA = {
+    drums: { originalBpm: 120, originalKeyId: 0 },
+    bass: { originalBpm: 120, originalKeyId: 0 },
+    melody: { originalBpm: 120, originalKeyId: 0 },
+    voice: { originalBpm: 120, originalKeyId: 0 },
+  };
 
   const state = {
     audioContext: null,
@@ -91,6 +98,7 @@
       const volumeValue = panel.querySelector("[data-volume-value]");
       const muteButton = panel.querySelector("[data-mute]");
       const soloButton = panel.querySelector("[data-solo]");
+      const clearButton = panel.querySelector("[data-clear]");
       const waveform = panel.querySelector("[data-waveform]");
       const trackState = panel.querySelector("[data-track-state]");
 
@@ -104,6 +112,7 @@
         volumeValue,
         muteButton,
         soloButton,
+        clearButton,
         waveform,
         trackState,
         file: null,
@@ -113,6 +122,10 @@
         mute: false,
         solo: false,
         userVolume: Number(volume.value),
+        processing: false,
+        requestController: null,
+        processedBpm: null,
+        processedKeyId: null,
         bars: [],
       };
 
@@ -223,6 +236,10 @@
       refreshTrackUi(track);
       updateAllTrackGains();
     });
+
+    track.clearButton.addEventListener("click", () => {
+      clearTrack(track);
+    });
   }
 
   function createWaveBars(track) {
@@ -246,24 +263,90 @@
     }
 
     await ensureContextRunning();
-    setStatus(`Carregando ${file.name}...`, "loading");
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = await getAudioContext().decodeAudioData(arrayBuffer.slice(0));
-
     track.file = file;
-    track.buffer = buffer;
     track.fileLabel.textContent = file.name;
-    track.trackState.textContent = "Loaded";
-    track.panel.classList.add("has-audio");
+    track.processing = true;
+    track.trackState.textContent = "PROCESSING IN PYTHON BACKEND...";
+    track.panel.classList.add("has-audio", "is-processing");
+    setStatus(`Processando ${file.name} no backend Python...`, "loading");
 
-    if (state.isPlaying) {
-      restartSessionSilently();
+    if (track.requestController) {
+      track.requestController.abort();
     }
 
-    refreshTrackUi(track);
-    updateSessionUi();
-    setStatus(`Stem carregado: ${file.name}`, "ready");
+    const controller = new AbortController();
+    track.requestController = controller;
+
+    try {
+      const processedBuffer = await processTrackThroughBackend(track, file, controller.signal);
+      if (track.requestController !== controller) {
+        return;
+      }
+
+      track.buffer = processedBuffer;
+      track.processedBpm = Number(els.bpmGlobal.value);
+      track.processedKeyId = noteToSemitone(els.keyGlobal.value);
+      track.trackState.textContent = "Loaded";
+
+      if (state.isPlaying) {
+        restartSessionSilently();
+      }
+
+      refreshTrackUi(track);
+      updateSessionUi();
+      setStatus(`Stem sincronizado: ${file.name}`, "ready");
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
+
+      if (track.requestController !== controller) {
+        return;
+      }
+
+      console.error(error);
+      track.buffer = null;
+      track.trackState.textContent = "Backend error";
+      track.panel.classList.remove("has-audio");
+      refreshTrackUi(track);
+      updateSessionUi();
+      setStatus(`Falha ao processar ${file.name}`, "error");
+    } finally {
+      if (track.requestController === controller) {
+        track.processing = false;
+        track.requestController = null;
+        track.panel.classList.remove("is-processing");
+        track.input.value = "";
+        refreshTrackUi(track);
+      }
+    }
+  }
+
+  async function processTrackThroughBackend(track, file, signal) {
+    const metadata = TRACK_SIMULATED_METADATA[track.id] || TRACK_SIMULATED_METADATA.drums;
+    const formData = new FormData();
+    formData.append("instrumento", track.id);
+    formData.append("original_bpm", String(metadata.originalBpm));
+    formData.append("original_key_id", String(metadata.originalKeyId));
+    formData.append("target_bpm", String(Number(els.bpmGlobal.value)));
+    formData.append("target_key_id", String(noteToSemitone(els.keyGlobal.value)));
+    formData.append("arquivo", file, file.name);
+
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+      signal,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || `Backend retornou status ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioArrayBuffer = await audioBlob.arrayBuffer();
+    return getAudioContext().decodeAudioData(audioArrayBuffer.slice(0));
   }
 
   function isAcceptedFile(fileName) {
@@ -292,6 +375,47 @@
 
   function updateAllTrackGains() {
     state.tracks.forEach((track) => updateTrackGain(track));
+  }
+
+  function clearTrack(track) {
+    if (track.requestController) {
+      track.requestController.abort();
+    }
+
+    if (track.source) {
+      try {
+        track.source.stop();
+      } catch {
+        // Fonte já pode ter sido parada.
+      }
+      try {
+        track.source.disconnect();
+      } catch {
+        // Ignora erro de desconexão.
+      }
+      track.source = null;
+    }
+
+    track.file = null;
+    track.buffer = null;
+    track.processing = false;
+    track.requestController = null;
+    track.processedBpm = null;
+    track.processedKeyId = null;
+    track.panel.classList.remove("has-audio", "is-processing", "is-playing");
+    track.fileLabel.textContent = "Nenhum arquivo selecionado";
+    track.trackState.textContent = "Idle";
+    track.input.value = "";
+
+    refreshTrackUi(track);
+    updateAllTrackGains();
+    updateSessionUi();
+
+    if (state.isPlaying) {
+      restartSessionSilently();
+    }
+
+    setStatus(`${track.label} limpa com sucesso`, "ready");
   }
 
   async function playSession() {
@@ -393,13 +517,17 @@
   }
 
   function updateActivePlaybackParams() {
-    const bpmRatio = Number(els.bpmGlobal.value) / 120;
-    const keyOffset = noteToSemitone(els.keyGlobal.value);
-
     state.tracks.forEach((track) => {
       if (!track.source) {
         return;
       }
+
+      const currentBpm = Number(els.bpmGlobal.value);
+      const currentKeyId = noteToSemitone(els.keyGlobal.value);
+      const bpmRatio = track.processedBpm ? currentBpm / track.processedBpm : 1;
+      const keyOffset = track.processedKeyId !== null && track.processedKeyId !== undefined
+        ? currentKeyId - track.processedKeyId
+        : 0;
 
       track.source.playbackRate.value = bpmRatio;
       track.source.detune.value = keyOffset * 100;
@@ -448,8 +576,17 @@
         const source = offline.createBufferSource();
         const gain = offline.createGain();
         const effectiveVolume = track.mute || (anySolo && !track.solo) ? 0 : track.userVolume;
+        const currentBpm = Number(els.bpmGlobal.value);
+        const currentKeyId = noteToSemitone(els.keyGlobal.value);
+        const bpmRatio = track.processedBpm ? currentBpm / track.processedBpm : 1;
+        const keyOffset = track.processedKeyId !== null && track.processedKeyId !== undefined
+          ? currentKeyId - track.processedKeyId
+          : 0;
+
         source.buffer = track.buffer;
         source.loop = true;
+        source.playbackRate.value = bpmRatio;
+        source.detune.value = keyOffset * 100;
         gain.gain.value = effectiveVolume;
         source.connect(gain).connect(master);
         source.start(0);
@@ -532,6 +669,13 @@
   function updateWaveState(track, forcePlaying = false) {
     const active = (state.isPlaying || forcePlaying) && Boolean(track.buffer) && !track.mute;
     track.panel.classList.toggle("is-playing", active);
+    track.panel.classList.toggle("is-processing", track.processing);
+
+    if (track.processing) {
+      track.trackState.textContent = "PROCESSING IN PYTHON BACKEND...";
+      return;
+    }
+
     track.trackState.textContent = track.buffer ? (active ? "Playing" : "Loaded") : "Idle";
   }
 
