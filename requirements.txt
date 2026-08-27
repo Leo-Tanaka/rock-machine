@@ -4,3 +4,4 @@ numpy
 fastapi
 uvicorn[standard]
 python-multipart
+sounddevice

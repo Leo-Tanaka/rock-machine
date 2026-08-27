@@ -18,14 +18,38 @@ class MotorDSP:
 
     @staticmethod
     def detectar_bpm(y: np.ndarray, sr: int) -> float:
-        """Detecta o BPM (tempo) de um áudio usando librosa."""
+        """Detecta o BPM (tempo) de um áudio usando librosa.
+
+        Usa librosa.feature.tempo (API atual). Em versões antigas do librosa
+        essa função se chamava librosa.beat.tempo, por isso o fallback abaixo.
+        """
         try:
             onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-            tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)
+            if hasattr(librosa.feature, "tempo"):
+                tempo = librosa.feature.tempo(onset_envelope=onset_env, sr=sr)
+            else:
+                tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)  # librosa antigo
             return float(tempo[0]) if isinstance(tempo, np.ndarray) else float(tempo)
         except Exception as e:
             print(f"Aviso: Falha na detecção de BPM: {e}. Retornando 120 como padrão.")
             return 120.0
+
+    @staticmethod
+    def detectar_inicio_do_groove(y: np.ndarray, sr: int) -> float:
+        """Detecta em que segundo o primeiro beat forte acontece, para
+        conseguirmos cortar silêncio/intro do início do stem. Sem isso, um
+        stem com alguns segundos de silêncio no começo entra "atrasado" em
+        relação aos outros ao tocar em loop sincronizado."""
+        try:
+            y_mono = librosa.to_mono(y) if y.ndim > 1 else y
+            onset_env = librosa.onset.onset_strength(y=y_mono, sr=sr)
+            onsets = librosa.onset.onset_detect(onset_envelope=onset_env, sr=sr, units="time")
+            if len(onsets) == 0:
+                return 0.0
+            return float(onsets[0])
+        except Exception as e:
+            print(f"Aviso: Falha ao detectar início do groove: {e}. Usando o início do arquivo.")
+            return 0.0
 
     @staticmethod
     def detectar_tom_fundamental(y: np.ndarray, sr: int) -> int:
@@ -54,6 +78,7 @@ class MotorDSP:
         # sr=None preserva a taxa original; mono=False mantém canais quando existirem.
         y, sr = librosa.load(caminho_entrada, sr=None, mono=False)
 
+        y = self._cortar_silencio_inicial(y, sr)
         y = self._aplicar_time_stretch(y, float(bpm_original))
         y = self._aplicar_pitch_shift(y, sr, int(tom_original_id))
 
@@ -61,6 +86,21 @@ class MotorDSP:
         sf.write(caminho_saida, y.T if y.ndim == 2 else y, sr)
         print(f"Concluído: {caminho_saida}\n")
         return str(caminho_saida)
+
+    def _cortar_silencio_inicial(self, y: np.ndarray, sr: int) -> np.ndarray:
+        """Corta qualquer silêncio/intro no início do stem, começando no
+        primeiro beat forte detectado. Evita que uma música com intro
+        silenciosa entre "atrasada" quando tocada em loop com outras."""
+        ponto_corte = self.detectar_inicio_do_groove(y, sr)
+        if ponto_corte <= 0:
+            return y
+
+        amostra_corte = int(ponto_corte * sr)
+        print(f" -> Cortando silêncio/intro inicial: {ponto_corte:.2f}s")
+
+        if y.ndim == 1:
+            return y[amostra_corte:]
+        return y[:, amostra_corte:]
 
     def _aplicar_time_stretch(self, y: np.ndarray, bpm_original: float) -> np.ndarray:
         if bpm_original <= 0:
