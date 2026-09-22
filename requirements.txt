@@ -5,3 +5,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 sounddevice
+pymongo
+python-dotenv
+python-multipart
+requests
