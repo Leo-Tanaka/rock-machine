@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Playlist pública | Máquina de Rock</title>
+    <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20260923" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              display: ["Rajdhani", "sans-serif"],
+            },
+            boxShadow: {
+              neon: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(6,182,212,0.22), 0 0 64px rgba(236,72,153,0.12)",
+            },
+            colors: {
+              rock: {
+                bg: "#0f172a",
+                panel: "#111827",
+                line: "#1f2937",
+                cyan: "#06b6d4",
+                emerald: "#10b981",
+                amber: "#f59e0b",
+                pink: "#ec4899",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased">
+    <main class="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:py-16">
+      <header class="border-b border-slate-800 pb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">Máquina de Rock</p>
+        <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 class="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">Playlist pública</h1>
+            <p id="playlistDescription" class="mt-2 text-slate-400">Carregando músicas...</p>
+          </div>
+          <a href="/publicar" class="inline-flex rounded-xl border border-cyan-400/35 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10">
+            Publicar uma música
+          </a>
+          </div>
+      </header>
+       <section class="mt-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-neon backdrop-blur-xl">
+        <div id="playlist" class="divide-y divide-slate-800" aria-live="polite"></div>
+      </section>
+    </main>
+    <script>
+      const playlist = document.getElementById("playlist");
+      const playlistDescription = document.getElementById("playlistDescription");
+      const player = new Audio();
+       let activeButton = null;
+      function formatDate(value) {
+        if (!value) return "Data não disponível";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "Data não disponível";
+        return new Intl.DateTimeFormat("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }).format(date);
+      }
+      function setButtonState(button, isPlaying) {
+        button.textContent = isPlaying ? "Pausar" : "Ouvir";
+        button.classList.toggle("bg-cyan-400", isPlaying);
+        button.classList.toggle("text-slate-950", isPlaying);
+        button.classList.toggle("bg-slate-800", !isPlaying);
+        button.classList.toggle("text-cyan-200", !isPlaying);
+      }
+      function createTrack(musica, index) {
+        const item = document.createElement("article");
+        item.className = "flex items-center gap-4 p-4 transition hover:bg-slate-800/45 sm:gap-6 sm:p-5";
+         const position = document.createElement("span");
+        position.className = "w-7 text-center text-sm font-bold tabular-nums text-cyan-300";
+        position.textContent = String(index + 1).padStart(2, "0");
+        const details = document.createElement("div");
+        details.className = "min-w-0 flex-1";
+        const title = document.createElement("h2");
+        title.className = "truncate font-semibold text-white";
+        title.textContent = musica.nome || "Sem título";
+        const author = document.createElement("p");
+        author.className = "mt-1 truncate text-sm text-slate-400";
+        author.textContent = `${musica.autor || "Autor desconhecido"} · ${formatDate(musica.data_criacao)}`;
+        details.append(title, author);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-300";
+        button.textContent = "Ouvir";
+        button.setAttribute("aria-label", `Ouvir ${musica.nome || "música"}`);
+        button.addEventListener("click", async () => {
+          if (!musica.url_audio) return;
+          if (activeButton === button && !player.paused) {
+            player.pause();
+            return;
+          }
+          if (activeButton && activeButton !== button) {
+            setButtonState(activeButton, false);
+          }
+          player.src = musica.url_audio;
+          activeButton = button;
+          try {
+            await player.play();
+            setButtonState(button, true);
+          } catch {
+            setButtonState(button, false);
+             activeButton = null;
+            playlistDescription.textContent = "Não foi possível reproduzir esta música.";
+          }
+        });
+        item.append(position, details, button);
+        return item;
+      }
+      player.addEventListener("pause", () => {
+        if (activeButton) setButtonState(activeButton, false);
+      });
+      player.addEventListener("ended", () => {
+        if (activeButton) setButtonState(activeButton, false);
+        activeButton = null;
+      });
+      async function loadPlaylist() {
+        try {
+          const response = await fetch("/musicas");
+          if (!response.ok) throw new Error("Não foi possível carregar a playlist.");
+          const musicas = await response.json();
+          playlist.replaceChildren();
+          if (musicas.length === 0) {
+            const empty = document.createElement("p");
+            empty.className = "p-8 text-center text-slate-400";
+            empty.textContent = "Ainda não há músicas publicadas.";
+            playlist.append(empty);
+            playlistDescription.textContent = "Seja a primeira pessoa a publicar uma música.";
+            return;
+          }
+          musicas.forEach((musica, index) => playlist.append(createTrack(musica, index)));
+          playlistDescription.textContent = `${musicas.length} ${musicas.length === 1 ? "música publicada" : "músicas publicadas"}`;
+          const destaque = document.getElementById("faixa-destaque");
+          if (destaque) destaque.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (error) {
+          playlist.replaceChildren();
+          const message = document.createElement("p");
+          message.className = "p-8 text-center text-rose-200";
+          message.textContent = error.message || "Não foi possível carregar a playlist.";
+          playlist.append(message);
+          playlistDescription.textContent = "Erro ao carregar músicas.";
+        }
+      }
+      void loadPlaylist();
+    </script>
+  </body>
+</html>
