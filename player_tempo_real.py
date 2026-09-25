@@ -119,9 +119,9 @@ MAPA_RFID = {
         "drums"
     ),
 
-    "": (
-        "Feel Goo Inc",
-        "bass"
+    "41CA4B73": (
+        "Tempos Modernos",
+        "drums"
     ),
 
     "F9376A48": (
@@ -129,8 +129,8 @@ MAPA_RFID = {
         "vocals"
     ),
 
-    "UID_QUEEN_OTHER": (
-        "In the End",
+    "1AD3781A": (
+        "Smells Like Teen Spirit",
         "other"
     ),
 
@@ -139,7 +139,7 @@ MAPA_RFID = {
     # GEMIDO WHATSAPP
     # ==================================================
 
-    "UID_ESPRESSO_BASS": (
+    "4BA49079": (
         "Another One Bites the Dust",
         "gemido-whatsapp"
     ),
@@ -149,14 +149,14 @@ MAPA_RFID = {
     # ESPRESSO
     # ==================================================
 
-    "": (
-        "Espresso",
-        "drums"
+    "2A634C73": (
+        "Tempos Modernos",
+        "vocals"
     ),
 
-    "UID_ESPRESSO_BASS": (
-        "Espresso",
-        "bass"
+    "21615573": (
+        "Payphone",
+        "other"
     ),
 
     "UID_ESPRESSO_VOCALS": (
