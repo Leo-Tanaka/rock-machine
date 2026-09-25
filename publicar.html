@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Publicar música | Máquina de Rock</title>
+    <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20260923" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              display: ["Rajdhani", "sans-serif"],
+            },
+            boxShadow: {
+              neon: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(6,182,212,0.22), 0 0 64px rgba(236,72,153,0.12)",
+            },
+            colors: {
+              rock: {
+                bg: "#0f172a",
+                panel: "#111827",
+                line: "#1f2937",
+                cyan: "#06b6d4",
+                emerald: "#10b981",
+                amber: "#f59e0b",
+                pink: "#ec4899",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased">
+    <main class="mx-auto flex min-h-screen w-full max-w-2xl items-center px-4 py-10 sm:px-6">
+      <section class="w-full rounded-3xl border border-cyan-400/20 bg-slate-900/70 p-6 shadow-neon sm:p-10">
+        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">Máquina de Rock</p>
+        <h1 class="mt-3 font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">Publicar uma música</h1>
+        <p class="mt-3 leading-6 text-slate-300">
+          Envie o WAV final e informe os créditos. A música ficará preparada para aparecer na playlist pública.
+        </p>
+        <form id="publicationForm" class="mt-8 space-y-5">
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-200">Nome da música</span>
+            <input
+              id="nome"
+              name="nome"
+              type="text"
+              required
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Ex.: Meu remix de rock"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+            />
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-200">Nome do autor</span>
+            <input
+              id="autor"
+              name="autor"
+              type="text"
+              required
+              maxlength="120"
+              autocomplete="name"
+              placeholder="Ex.: Ana Silva"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20"
+            />
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-semibold text-slate-200">Arquivo WAV</span>
+            <input
+              id="arquivo"
+              name="arquivo"
+              type="file"
+              accept=".wav,audio/wav,audio/x-wav"
+              required
+              class="block w-full cursor-pointer rounded-xl border border-dashed border-slate-600 bg-slate-950 px-4 py-3 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500/15 file:px-3 file:py-2 file:font-semibold file:text-cyan-200 hover:border-cyan-400/60"
+            />
+            <span class="mt-2 block text-xs text-slate-400">Nesta etapa, selecione manualmente o WAV que deseja publicar.</span>
+          </label>
+          <p id="status" class="hidden rounded-xl px-4 py-3 text-sm" role="status" aria-live="polite"></p>
+          <button
+            id="submitButton"
+            type="submit"
+            class="w-full rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Salvar música
+          </button>
+        </form>
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById("publicationForm");
+      const status = document.getElementById("status");
+      const submitButton = document.getElementById("submitButton");
+      function showStatus(message, type) {
+        status.textContent = message;
+        status.className = `rounded-xl px-4 py-3 text-sm ${
+          type === "success"
+            ? "bg-emerald-400/10 text-emerald-200"
+            : "bg-rose-400/10 text-rose-200"
+        }`;
+      }
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const arquivo = document.getElementById("arquivo").files[0];
+        if (!arquivo || !arquivo.name.toLowerCase().endsWith(".wav")) {
+          showStatus("Selecione um arquivo WAV para continuar.", "error");
+          return;
+        }
+        submitButton.disabled = true;
+        submitButton.textContent = "Salvando música...";
+        status.classList.add("hidden");
+        try {
+          const response = await fetch("/musicas/upload", {
+            method: "POST",
+            body: new FormData(form),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.detail || "Não foi possível salvar a música.");
+          }
+          form.reset();
+          showStatus(`“${payload.nome}” foi salva com sucesso.`, "success");
+           } catch (error) {
+          showStatus(error.message || "Não foi possível salvar a música.", "error");
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Salvar música";
+        }
+      });
+    </script>
+  </body>
+</html>
