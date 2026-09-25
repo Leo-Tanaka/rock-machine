@@ -1,159 +1,774 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Playlist pública | Máquina de Rock</title>
-    <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20260923" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ["Inter", "sans-serif"],
-              display: ["Rajdhani", "sans-serif"],
-            },
-            boxShadow: {
-              neon: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(6,182,212,0.22), 0 0 64px rgba(236,72,153,0.12)",
-            },
-            colors: {
-              rock: {
-                bg: "#0f172a",
-                panel: "#111827",
-                line: "#1f2937",
-                cyan: "#06b6d4",
-                emerald: "#10b981",
-                amber: "#f59e0b",
-                pink: "#ec4899",
-              },
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Playlist | Rock Machine</title>
+
+  <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20260923" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            display: ["Rajdhani", "sans-serif"],
+          },
+
+          colors: {
+            rock: {
+              cyan: "#06b6d4",
+              purple: "#8b5cf6",
+              pink: "#ec4899",
+              green: "#10b981",
             },
           },
+
+          boxShadow: {
+            neon:
+              "0 0 30px rgba(6,182,212,0.15), 0 0 80px rgba(139,92,246,0.08)",
+          },
         },
-      };
-    </script>
-  </head>
-  <body class="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased">
-    <main class="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6 lg:py-16">
-      <header class="border-b border-slate-800 pb-8">
-        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">Máquina de Rock</p>
-        <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 class="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">Playlist pública</h1>
-            <p id="playlistDescription" class="mt-2 text-slate-400">Carregando músicas...</p>
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.12), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(139, 92, 246, 0.12), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(236, 72, 153, 0.08), transparent 35%),
+        #020617;
+    }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .music-card {
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .music-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(6, 182, 212, 0.35);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    }
+
+    .music-card.playing {
+      border-color: rgba(6, 182, 212, 0.55);
+      background: rgba(6, 182, 212, 0.07);
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.12);
+    }
+
+    .equalizer span {
+      display: block;
+      width: 3px;
+      border-radius: 999px;
+      background: #22d3ee;
+      animation: equalizer 0.8s ease-in-out infinite alternate;
+    }
+
+    .equalizer span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .equalizer span:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes equalizer {
+      from {
+        height: 5px;
+      }
+
+      to {
+        height: 18px;
+      }
+    }
+
+    .float {
+      animation: float 5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-slate-100 antialiased">
+
+  <div class="grid-bg fixed inset-0 -z-10"></div>
+
+  <main class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+
+    <!-- HEADER -->
+    <header class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-neon backdrop-blur-xl sm:p-10">
+
+      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl"></div>
+      <div class="absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl"></div>
+
+      <div class="relative">
+
+        <div class="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+
+          <div class="max-w-2xl">
+
+            <div class="mb-4 flex items-center gap-3">
+
+              <div class="float flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 text-2xl">
+                🎵
+              </div>
+
+              <div>
+                <p class="font-display text-sm font-bold uppercase tracking-[0.3em] text-cyan-300">
+                  Rock Machine
+                </p>
+
+                <p class="text-xs text-slate-500">
+                  Música criada por pessoas
+                </p>
+              </div>
+
+            </div>
+
+            <h1 class="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl">
+              Playlist
+              <span class="bg-gradient-to-r from-cyan-300 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                pública
+              </span>
+            </h1>
+
+            <p class="mt-4 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
+              Um espaço para ouvir, descobrir e compartilhar as músicas
+              criadas através da Rock Machine.
+            </p>
+
           </div>
-          <a href="/publicar" class="inline-flex rounded-xl border border-cyan-400/35 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10">
-            Publicar uma música
-          </a>
+
+          <div class="flex flex-wrap gap-3">
+
+            <a
+              href="/publicar"
+              class="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 hover:scale-105"
+            >
+              <span>＋</span>
+              Publicar música
+            </a>
+
+            <button
+              id="shareButton"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/40 hover:bg-slate-800"
+            >
+              <span>↗</span>
+              Compartilhar
+            </button>
+
           </div>
-      </header>
-       <section class="mt-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-neon backdrop-blur-xl">
-        <div id="playlist" class="divide-y divide-slate-800" aria-live="polite"></div>
-      </section>
-    </main>
-    <script>
-      const playlist = document.getElementById("playlist");
-      const playlistDescription = document.getElementById("playlistDescription");
-      const player = new Audio();
-       let activeButton = null;
-      function formatDate(value) {
-        if (!value) return "Data não disponível";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return "Data não disponível";
-        return new Intl.DateTimeFormat("pt-BR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }).format(date);
+
+        </div>
+
+        <!-- STATS -->
+
+        <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Músicas
+            </p>
+
+            <p id="musicCount" class="mt-1 font-display text-3xl font-bold text-cyan-300">
+              —
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Playlist
+            </p>
+
+            <p class="mt-1 font-display text-3xl font-bold text-purple-300">
+              COLAB
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Status
+            </p>
+
+            <p class="mt-1 flex items-center gap-2 font-display text-3xl font-bold text-emerald-300">
+              <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400"></span>
+              ONLINE
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+    </header>
+
+
+    <!-- PLAYLIST -->
+
+    <section class="mt-8">
+
+      <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+        <div>
+          <p class="font-display text-xl font-bold uppercase tracking-wider text-white">
+            Faixas publicadas
+          </p>
+
+          <p id="playlistDescription" class="mt-1 text-sm text-slate-500">
+            Carregando músicas...
+          </p>
+        </div>
+
+        <div class="text-xs text-slate-600">
+          Toque em uma faixa para ouvir
+        </div>
+
+      </div>
+
+
+      <div
+        id="playlist"
+        class="space-y-3"
+        aria-live="polite"
+      ></div>
+
+    </section>
+
+
+    <!-- FOOTER -->
+
+    <footer class="mt-12 border-t border-slate-800 pt-6 text-center">
+
+      <p class="text-sm text-slate-500">
+        Feito com 🎵 pela comunidade
+        <span class="font-semibold text-cyan-400">
+          Rock Machine
+        </span>
+      </p>
+
+      <p class="mt-1 text-xs text-slate-700">
+        Crie. Experimente. Compartilhe.
+      </p>
+
+    </footer>
+
+  </main>
+
+
+  <script>
+
+    const playlist = document.getElementById("playlist");
+    const playlistDescription = document.getElementById("playlistDescription");
+    const musicCount = document.getElementById("musicCount");
+    const shareButton = document.getElementById("shareButton");
+
+    const player = new Audio();
+
+    let activeButton = null;
+    let activeCard = null;
+
+
+    function formatDate(value) {
+
+      if (!value) return "Data não disponível";
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Data não disponível";
       }
-      function setButtonState(button, isPlaying) {
-        button.textContent = isPlaying ? "Pausar" : "Ouvir";
-        button.classList.toggle("bg-cyan-400", isPlaying);
-        button.classList.toggle("text-slate-950", isPlaying);
-        button.classList.toggle("bg-slate-800", !isPlaying);
-        button.classList.toggle("text-cyan-200", !isPlaying);
+
+      return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(date);
+
+    }
+
+
+    function setButtonState(button, isPlaying) {
+
+      button.innerHTML = isPlaying
+        ? "❚❚ Pausar"
+        : "▶ Ouvir";
+
+      if (isPlaying) {
+
+        button.classList.remove(
+          "bg-slate-800",
+          "text-cyan-200"
+        );
+
+        button.classList.add(
+          "bg-cyan-400",
+          "text-slate-950"
+        );
+
+      } else {
+
+        button.classList.remove(
+          "bg-cyan-400",
+          "text-slate-950"
+        );
+
+        button.classList.add(
+          "bg-slate-800",
+          "text-cyan-200"
+        );
+
       }
-      function createTrack(musica, index) {
-        const item = document.createElement("article");
-        item.className = "flex items-center gap-4 p-4 transition hover:bg-slate-800/45 sm:gap-6 sm:p-5";
-         const position = document.createElement("span");
-        position.className = "w-7 text-center text-sm font-bold tabular-nums text-cyan-300";
-        position.textContent = String(index + 1).padStart(2, "0");
-        const details = document.createElement("div");
-        details.className = "min-w-0 flex-1";
-        const title = document.createElement("h2");
-        title.className = "truncate font-semibold text-white";
-        title.textContent = musica.nome || "Sem título";
-        const author = document.createElement("p");
-        author.className = "mt-1 truncate text-sm text-slate-400";
-        author.textContent = `${musica.autor || "Autor desconhecido"} · ${formatDate(musica.data_criacao)}`;
-        details.append(title, author);
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-300";
-        button.textContent = "Ouvir";
-        button.setAttribute("aria-label", `Ouvir ${musica.nome || "música"}`);
-        button.addEventListener("click", async () => {
-          if (!musica.url_audio) return;
-          if (activeButton === button && !player.paused) {
-            player.pause();
-            return;
-          }
-          if (activeButton && activeButton !== button) {
-            setButtonState(activeButton, false);
-          }
-          player.src = musica.url_audio;
-          activeButton = button;
-          try {
-            await player.play();
-            setButtonState(button, true);
-          } catch {
-            setButtonState(button, false);
-             activeButton = null;
-            playlistDescription.textContent = "Não foi possível reproduzir esta música.";
-          }
-        });
-        item.append(position, details, button);
-        return item;
+
+    }
+
+
+    function createTrack(musica, index) {
+
+      const item = document.createElement("article");
+
+      item.className =
+        "music-card group flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:p-5";
+
+
+      // Número
+
+      const position = document.createElement("div");
+
+      position.className =
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 font-display text-lg font-bold text-cyan-300";
+
+      position.textContent =
+        String(index + 1).padStart(2, "0");
+
+
+      // Ícone
+
+      const icon = document.createElement("div");
+
+      icon.className =
+        "hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-purple-400/20 bg-purple-400/10 text-xl sm:flex";
+
+      icon.textContent = "♫";
+
+
+      // Informações
+
+      const details = document.createElement("div");
+
+      details.className =
+        "min-w-0 flex-1";
+
+
+      const title = document.createElement("h2");
+
+      title.className =
+        "truncate text-lg font-bold text-white";
+
+      title.textContent =
+        musica.nome || "Sem título";
+
+
+      const author = document.createElement("p");
+
+      author.className =
+        "mt-1 truncate text-sm text-slate-400";
+
+      author.textContent =
+        musica.autor || "Autor desconhecido";
+
+
+      const date = document.createElement("p");
+
+      date.className =
+        "mt-2 text-xs text-slate-600";
+
+      date.textContent =
+        `Publicada em ${formatDate(musica.data_criacao)}`;
+
+
+      details.append(
+        title,
+        author,
+        date
+      );
+
+
+      // Equalizador
+
+      const equalizer = document.createElement("div");
+
+      equalizer.className =
+        "equalizer hidden h-6 items-end gap-1 sm:flex";
+
+      for (let i = 0; i < 3; i++) {
+
+        const bar = document.createElement("span");
+
+        equalizer.appendChild(bar);
+
       }
-      player.addEventListener("pause", () => {
-        if (activeButton) setButtonState(activeButton, false);
-      });
-      player.addEventListener("ended", () => {
-        if (activeButton) setButtonState(activeButton, false);
-        activeButton = null;
-      });
-      async function loadPlaylist() {
-        try {
-          const response = await fetch("/musicas");
-          if (!response.ok) throw new Error("Não foi possível carregar a playlist.");
-          const musicas = await response.json();
-          playlist.replaceChildren();
-          if (musicas.length === 0) {
-            const empty = document.createElement("p");
-            empty.className = "p-8 text-center text-slate-400";
-            empty.textContent = "Ainda não há músicas publicadas.";
-            playlist.append(empty);
-            playlistDescription.textContent = "Seja a primeira pessoa a publicar uma música.";
-            return;
-          }
-          musicas.forEach((musica, index) => playlist.append(createTrack(musica, index)));
-          playlistDescription.textContent = `${musicas.length} ${musicas.length === 1 ? "música publicada" : "músicas publicadas"}`;
-          const destaque = document.getElementById("faixa-destaque");
-          if (destaque) destaque.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch (error) {
-          playlist.replaceChildren();
-          const message = document.createElement("p");
-          message.className = "p-8 text-center text-rose-200";
-          message.textContent = error.message || "Não foi possível carregar a playlist.";
-          playlist.append(message);
-          playlistDescription.textContent = "Erro ao carregar músicas.";
+
+
+      // Botão
+
+      const button = document.createElement("button");
+
+      button.type = "button";
+
+      button.className =
+        "rounded-xl bg-slate-800 px-5 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-300";
+
+      button.textContent = "▶ Ouvir";
+
+      button.setAttribute(
+        "aria-label",
+        `Ouvir ${musica.nome || "música"}`
+      );
+
+
+      button.addEventListener("click", async () => {
+
+        if (!musica.url_audio) return;
+
+
+        // Pausar
+
+        if (
+          activeButton === button &&
+          !player.paused
+        ) {
+
+          player.pause();
+
+          return;
         }
+
+
+        // Parar faixa anterior
+
+        if (activeButton && activeButton !== button) {
+
+          setButtonState(
+            activeButton,
+            false
+          );
+
+        }
+
+        if (activeCard && activeCard !== item) {
+
+          activeCard.classList.remove(
+            "playing"
+          );
+
+        }
+
+
+        player.src =
+          musica.url_audio;
+
+        activeButton = button;
+        activeCard = item;
+
+
+        try {
+
+          await player.play();
+
+          setButtonState(
+            button,
+            true
+          );
+
+          item.classList.add(
+            "playing"
+          );
+
+          equalizer.classList.remove(
+            "hidden"
+          );
+
+          equalizer.classList.add(
+            "flex"
+          );
+
+        } catch {
+
+          setButtonState(
+            button,
+            false
+          );
+
+          activeButton = null;
+          activeCard = null;
+
+        }
+
+      });
+
+
+      item.append(
+        position,
+        icon,
+        details,
+        equalizer,
+        button
+      );
+
+
+      return item;
+
+    }
+
+
+    player.addEventListener("pause", () => {
+
+      if (activeButton) {
+        setButtonState(
+          activeButton,
+          false
+        );
       }
-      void loadPlaylist();
-    </script>
-  </body>
+
+      if (activeCard) {
+
+        activeCard.classList.remove(
+          "playing"
+        );
+
+        const equalizer =
+          activeCard.querySelector(
+            ".equalizer"
+          );
+
+        if (equalizer) {
+
+          equalizer.classList.remove(
+            "flex"
+          );
+
+          equalizer.classList.add(
+            "hidden"
+          );
+
+        }
+
+      }
+
+    });
+
+
+    player.addEventListener("ended", () => {
+
+      if (activeButton) {
+
+        setButtonState(
+          activeButton,
+          false
+        );
+
+      }
+
+      if (activeCard) {
+
+        activeCard.classList.remove(
+          "playing"
+        );
+
+      }
+
+      activeButton = null;
+      activeCard = null;
+
+    });
+
+
+    async function loadPlaylist() {
+
+      try {
+
+        const response =
+          await fetch("/musicas");
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "Não foi possível carregar a playlist."
+          );
+
+        }
+
+
+        const musicas =
+          await response.json();
+
+
+        playlist.replaceChildren();
+
+
+        musicCount.textContent =
+          musicas.length;
+
+
+        if (musicas.length === 0) {
+
+          const empty =
+            document.createElement("div");
+
+          empty.className =
+            "rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 p-12 text-center";
+
+
+          empty.innerHTML = `
+            <div class="text-5xl">🎧</div>
+
+            <h2 class="mt-4 text-xl font-bold text-white">
+              A playlist está esperando por você
+            </h2>
+
+            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+              Ainda não existem músicas publicadas.
+              Crie sua primeira faixa e coloque seu som para tocar!
+            </p>
+
+            <a
+              href="/publicar"
+              class="mt-6 inline-flex rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+            >
+              Criar primeira música
+            </a>
+          `;
+
+
+          playlist.append(empty);
+
+          playlistDescription.textContent =
+            "Seja a primeira pessoa a publicar uma música.";
+
+          return;
+
+        }
+
+
+        musicas.forEach(
+          (musica, index) => {
+
+            playlist.append(
+              createTrack(
+                musica,
+                index
+              )
+            );
+
+          }
+        );
+
+
+        playlistDescription.textContent =
+          `${musicas.length} ${
+            musicas.length === 1
+              ? "música publicada"
+              : "músicas publicadas"
+          } • Playlist colaborativa`;
+
+
+      } catch (error) {
+
+        playlist.replaceChildren();
+
+
+        const message =
+          document.createElement("div");
+
+        message.className =
+          "rounded-2xl border border-rose-900/40 bg-rose-950/20 p-8 text-center text-rose-200";
+
+        message.textContent =
+          error.message ||
+          "Não foi possível carregar a playlist.";
+
+
+        playlist.append(message);
+
+
+        playlistDescription.textContent =
+          "Erro ao carregar músicas.";
+
+      }
+
+    }
+
+
+    shareButton.addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          await navigator.clipboard.writeText(
+            window.location.href
+          );
+
+          shareButton.innerHTML =
+            "✓ Link copiado!";
+
+          setTimeout(() => {
+
+            shareButton.innerHTML =
+              "↗ Compartilhar";
+
+          }, 2000);
+
+        } catch {
+
+          alert(
+            "Copie o endereço desta página para compartilhar."
+          );
+
+        }
+
+      }
+    );
+
+
+    void loadPlaylist();
+
+  </script>
+
+</body>
 </html>
