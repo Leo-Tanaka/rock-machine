@@ -41,7 +41,7 @@ def health() -> dict[str, str]:
 
 @app.get("/")
 def root() -> FileResponse:
-    return FileResponse(BASE_DIR / "index.html")
+    return FileResponse(BASE_DIR / "/frontend/index.html")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -49,9 +49,9 @@ def favicon() -> Response:
     return Response(status_code=204)
 
 
-@app.get("/app.js", include_in_schema=False)
+@app.get("/frontend/js/app.js", include_in_schema=False)
 def javascript_bundle() -> FileResponse:
-    return FileResponse(BASE_DIR / "app.js", media_type="application/javascript")
+    return FileResponse(BASE_DIR / "/frontend/js/app.js", media_type="application/javascript")
 
 
 def _detect_audio_metadata(caminho_arquivo: Path) -> tuple[float, int]:

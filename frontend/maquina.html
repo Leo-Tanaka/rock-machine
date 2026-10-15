@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Rock Machine</title>
+
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        background: radial-gradient(
+          circle at top,
+          #202040 0%,
+          #0b0b12 45%,
+          #050507 100%
+        );
+
+        color: #ffffff;
+        font-family: Arial, Helvetica, sans-serif;
+
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 900px;
+        padding: 40px 24px 60px;
+      }
+
+      /* =========================
+           HEADER
+        ========================= */
+
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .logo {
+        font-size: 14px;
+        letter-spacing: 5px;
+        font-weight: bold;
+        color: #00e5ff;
+        margin-bottom: 25px;
+      }
+
+      h1 {
+        font-size: clamp(32px, 6vw, 56px);
+        letter-spacing: 2px;
+        margin-bottom: 12px;
+      }
+
+      .subtitle {
+        color: #9b9ba8;
+        font-size: 16px;
+      }
+
+      /* =========================
+           STATUS
+        ========================= */
+
+      .status-card {
+        border: 1px solid #272737;
+        background: rgba(15, 15, 25, 0.8);
+        border-radius: 20px;
+        padding: 24px;
+        margin-bottom: 28px;
+        text-align: center;
+      }
+
+      .status-label {
+        color: #888897;
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+
+      .timer {
+        font-size: 42px;
+        font-weight: bold;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .recording-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        color: #ff4fd8;
+        font-size: 14px;
+        font-weight: bold;
+      }
+
+      .recording-dot {
+        width: 9px;
+        height: 9px;
+        background: #ff4fd8;
+        border-radius: 50%;
+        box-shadow: 0 0 12px #ff4fd8;
+      }
+
+      /* =========================
+           COMPOSIÇÃO
+        ========================= */
+
+      .section-title {
+        margin-bottom: 8px;
+        font-size: 22px;
+      }
+
+      .section-description {
+        color: #858594;
+        margin-bottom: 20px;
+      }
+
+      #camadas {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .empty-state {
+        border: 1px dashed #343445;
+        border-radius: 16px;
+        padding: 40px 20px;
+        text-align: center;
+        color: #777787;
+      }
+
+      .layer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+
+        padding: 20px;
+
+        border-radius: 18px;
+        border: 1px solid #292939;
+
+        background: linear-gradient(
+          135deg,
+          rgba(25, 25, 40, 0.95),
+          rgba(12, 12, 20, 0.95)
+        );
+
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+
+      .layer-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .layer-icon {
+        width: 48px;
+        height: 48px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 14px;
+
+        background: #171722;
+
+        font-size: 22px;
+      }
+
+      .layer-type {
+        color: #00e5ff;
+        font-size: 11px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .layer-name {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+
+      .layer-artist {
+        color: #858594;
+        font-size: 14px;
+      }
+
+      .active {
+        color: #42ff9e;
+        font-size: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+      }
+
+      /* =========================
+           AÇÕES
+        ========================= */
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+      }
+
+      button {
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 14px;
+        padding: 16px 22px;
+        transition: 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+      }
+
+      .primary {
+        flex: 1;
+
+        color: #050507;
+
+        background: linear-gradient(90deg, #00e5ff, #ff4fd8);
+
+        box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+      }
+
+      .secondary {
+        background: #191923;
+        color: #aaaaba;
+        border: 1px solid #2d2d3d;
+      }
+
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* =========================
+           SIMULAÇÃO
+        ========================= */
+
+      .simulation {
+        margin-top: 50px;
+        padding: 20px;
+
+        border: 1px dashed #303041;
+        border-radius: 18px;
+
+        background: rgba(10, 10, 16, 0.6);
+      }
+
+      .simulation h3 {
+        color: #ff4fd8;
+        margin-bottom: 8px;
+      }
+
+      .simulation p {
+        color: #777787;
+        font-size: 13px;
+        margin-bottom: 18px;
+      }
+
+      .simulation-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .simulation button {
+        padding: 10px 14px;
+        font-size: 12px;
+        background: #171722;
+        color: #ddd;
+        border: 1px solid #303041;
+      }
+
+      /* =========================
+           RESPONSIVO
+        ========================= */
+
+      @media (max-width: 600px) {
+        .container {
+          padding: 25px 16px 40px;
+        }
+
+        .layer {
+          align-items: flex-start;
+        }
+
+        .active {
+          display: none;
+        }
+
+        .actions {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <main class="container">
+      <header>
+        <div class="logo">ROCK MACHINE</div>
+
+        <h1>SUA COMPOSIÇÃO</h1>
+
+        <p class="subtitle">Cada tag adiciona uma camada à sua música.</p>
+      </header>
+
+      <!-- STATUS DA GRAVAÇÃO -->
+
+      <section class="status-card">
+        <div class="status-label">Tempo da composição</div>
+
+        <div id="timer" class="timer">00:00</div>
+
+        <div
+          id="recordingStatus"
+          class="recording-status"
+          style="display: none"
+        >
+          <span class="recording-dot"></span>
+          GRAVANDO
+        </div>
+      </section>
+
+      <!-- CAMADAS -->
+
+      <section>
+        <h2 class="section-title">CAMADAS DA SUA MÚSICA</h2>
+
+        <p class="section-description">
+          Todas essas camadas estão tocando juntas.
+        </p>
+
+        <div id="camadas">
+          <div class="empty-state">
+            Nenhuma camada adicionada ainda.
+            <br />
+            Aproxime uma tag da máquina.
+          </div>
+        </div>
+      </section>
+
+      <!-- AÇÕES -->
+
+      <div class="actions">
+        <button id="iniciarBtn" class="primary" onclick="iniciarSessao()">
+          COMEÇAR MÚSICA
+        </button>
+
+        <button
+          id="cancelarBtn"
+          class="secondary"
+          onclick="cancelarSessao()"
+          disabled
+        >
+          CANCELAR
+        </button>
+
+        <button
+          id="finalizarBtn"
+          class="primary"
+          onclick="finalizarSessao()"
+          disabled
+        >
+          FINALIZAR MÚSICA
+        </button>
+      </div>
+
+      <!-- SIMULAÇÃO -->
+
+      <section class="simulation">
+        <h3>MODO DE DESENVOLVIMENTO</h3>
+
+        <p>
+          Estes controles simulam as tags RFID enquanto o hardware não está
+          disponível.
+        </p>
+
+        <div class="simulation-row">
+          <button onclick="simularTag('F9376A48', 1)">🎤 Billie Jean</button>
+
+          <button onclick="simularTag('73660EF7', 0)">
+            🥁 Smells Like Teen Spirit
+          </button>
+
+          <button onclick="simularTag('21615573', 2)">🎸 Payphone</button>
+        </div>
+
+        <div class="simulation-row">
+          <button onclick="simularRemover(0)">Remover bateria</button>
+
+          <button onclick="simularRemover(1)">Remover vocal</button>
+
+          <button onclick="simularRemover(2)">Remover instrumento</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const API = "http://127.0.0.1:8001";
+
+      let intervaloStatus = null;
+
+      // =================================================
+      // UTILITÁRIOS
+      // =================================================
+
+      function formatarTempo(segundos) {
+        segundos = Math.floor(segundos);
+
+        const minutos = Math.floor(segundos / 60);
+
+        const segundosRestantes = segundos % 60;
+
+        return (
+          String(minutos).padStart(2, "0") +
+          ":" +
+          String(segundosRestantes).padStart(2, "0")
+        );
+      }
+
+      function obterIcone(tipo) {
+        const icones = {
+          drums: "🥁",
+          vocals: "🎤",
+          other: "🎸",
+        };
+
+        return icones[tipo] || "🎵";
+      }
+
+      function obterNomeTipo(tipo) {
+        const nomes = {
+          drums: "Bateria",
+          vocals: "Vocal",
+          other: "Instrumentos",
+        };
+
+        return nomes[tipo] || "Camada";
+      }
+
+      // =================================================
+      // ATUALIZAR INTERFACE
+      // =================================================
+
+      async function atualizarStatus() {
+        try {
+          const resposta = await fetch(`${API}/sessao/status`);
+
+          const estado = await resposta.json();
+
+          atualizarInterface(estado);
+        } catch (erro) {
+          console.error("Não foi possível conectar à máquina:", erro);
+        }
+      }
+
+      function atualizarInterface(estado) {
+        // Tempo
+
+        document.getElementById("timer").textContent = formatarTempo(
+          estado.tempo,
+        );
+
+        // Status
+
+        const status = document.getElementById("recordingStatus");
+
+        status.style.display = estado.gravando ? "inline-flex" : "none";
+
+        // Botões
+
+        document.getElementById("iniciarBtn").disabled = estado.gravando;
+
+        document.getElementById("cancelarBtn").disabled = !estado.gravando;
+
+        document.getElementById("finalizarBtn").disabled =
+          !estado.gravando || estado.camadas.length === 0;
+
+        // Camadas
+
+        renderizarCamadas(estado.camadas);
+      }
+
+      function renderizarCamadas(camadas) {
+        const container = document.getElementById("camadas");
+
+        if (!camadas.length) {
+          container.innerHTML = `
+                    <div class="empty-state">
+                        Nenhuma camada adicionada ainda.
+                        <br>
+                        Aproxime uma tag da máquina.
+                    </div>
+                `;
+
+          return;
+        }
+
+        container.innerHTML = camadas
+          .map(
+            (camada) => `
+
+                    <div class="layer">
+
+                        <div class="layer-info">
+
+                            <div class="layer-icon">
+                                ${obterIcone(camada.tipo)}
+                            </div>
+
+                            <div>
+
+                                <div class="layer-type">
+                                    ${obterNomeTipo(camada.tipo)}
+                                </div>
+
+                                <div class="layer-name">
+                                    ${camada.musica}
+                                </div>
+
+                                <div class="layer-artist">
+                                    ${camada.artista || "Artista não informado"}
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="active">
+                            ● ATIVO
+                        </div>
+
+                    </div>
+
+                `,
+          )
+          .join("");
+      }
+
+      // =================================================
+      // INICIAR
+      // =================================================
+
+      async function iniciarSessao() {
+        try {
+          const resposta = await fetch(`${API}/sessao/iniciar`, {
+            method: "POST",
+          });
+
+          const resultado = await resposta.json();
+
+          if (!resposta.ok) {
+            alert(resultado.detail || "Não foi possível iniciar.");
+
+            return;
+          }
+
+          iniciarAtualizacao();
+
+          atualizarStatus();
+        } catch (erro) {
+          alert("Não foi possível conectar à máquina local.");
+
+          console.error(erro);
+        }
+      }
+
+      // =================================================
+      // CANCELAR
+      // =================================================
+
+      async function cancelarSessao() {
+        if (!confirm("Deseja cancelar esta composição?")) {
+          return;
+        }
+
+        try {
+          await fetch(`${API}/sessao/cancelar`, {
+            method: "POST",
+          });
+
+          pararAtualizacao();
+
+          atualizarStatus();
+        } catch (erro) {
+          console.error(erro);
+        }
+      }
+
+      // =================================================
+      // FINALIZAR
+      // =================================================
+
+      async function finalizarSessao() {
+        if (!confirm("Finalizar sua composição?")) {
+          return;
+        }
+
+        const botao = document.getElementById("finalizarBtn");
+
+        try {
+          botao.disabled = true;
+          botao.textContent = "FINALIZANDO...";
+
+          const resposta = await fetch(`${API}/sessao/finalizar`, {
+            method: "POST",
+          });
+
+          const resultado = await resposta.json();
+
+          if (!resposta.ok) {
+            throw new Error(resultado.detail || "Não foi possível finalizar.");
+          }
+
+          console.log("Composição finalizada:", resultado);
+
+          pararAtualizacao();
+
+          window.location.assign(`${API}/publicar`);
+        } catch (erro) {
+          console.error("Erro ao finalizar a composição:", erro);
+
+          alert(erro.message || "Erro ao finalizar a composição.");
+
+          botao.disabled = false;
+          botao.textContent = "FINALIZAR MÚSICA";
+        }
+      }
+
+      // =================================================
+      // SIMULAÇÃO DE RFID
+      // =================================================
+
+      async function simularTag(uid, posicao) {
+        try {
+          const resposta = await fetch(`${API}/simulacao/adicionar`, {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              uid: uid,
+              posicao: posicao,
+            }),
+          });
+
+          const resultado = await resposta.json();
+
+          if (!resposta.ok) {
+            alert(resultado.detail || "Erro ao simular tag.");
+
+            return;
+          }
+
+          atualizarStatus();
+        } catch (erro) {
+          console.error(erro);
+
+          alert("Não foi possível conectar à máquina.");
+        }
+      }
+
+      async function simularRemover(posicao) {
+        try {
+          await fetch(`${API}/simulacao/remover`, {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({
+              posicao: posicao,
+            }),
+          });
+
+          atualizarStatus();
+        } catch (erro) {
+          console.error(erro);
+        }
+      }
+
+      // =================================================
+      // ATUALIZAÇÃO AUTOMÁTICA
+      // =================================================
+
+      function iniciarAtualizacao() {
+        if (intervaloStatus) {
+          return;
+        }
+
+        intervaloStatus = setInterval(atualizarStatus, 500);
+      }
+
+      function pararAtualizacao() {
+        if (!intervaloStatus) {
+          return;
+        }
+
+        clearInterval(intervaloStatus);
+
+        intervaloStatus = null;
+      }
+
+      // =================================================
+      // INICIALIZAÇÃO
+      // =================================================
+
+      atualizarStatus();
+    </script>
+  </body>
+</html>

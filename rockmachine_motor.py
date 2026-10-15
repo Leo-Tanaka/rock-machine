@@ -374,6 +374,18 @@ class RockMachinePlayer:
             print(f"[EFEITO TERMINOU] posição {posicao_id}")
 
         return bloco
+    
+
+    def parar_todos_os_sons(self):
+        """
+        Para todas as músicas e efeitos ativos,
+        mantendo o stream de áudio aberto.
+        """
+        with self.lock:
+            self.posicoes.clear()
+            self.efeitos_ativos.clear()
+
+        print("[ÁUDIO] Todas as camadas foram paradas.")
 
     def iniciar_stream(self):
         def callback(outdata, frames, time_info, status):

@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Rock Machine | Estúdio & Experiência Sonora Interativa</title>
+  <meta name="description" content="Rock Machine — Onde cada interação vira música. Estúdio sonoro interativo com fichas RFID, mixagem de stems em tempo real e playlist pública na nuvem." />
+
+  <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20260923" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & Rajdhani -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            display: ["Rajdhani", "sans-serif"],
+          },
+          colors: {
+            rock: {
+              cyan: "#06b6d4",
+              purple: "#8b5cf6",
+              pink: "#ec4899",
+              green: "#10b981",
+              amber: "#f59e0b",
+            },
+          },
+          boxShadow: {
+            neon: "0 0 30px rgba(6,182,212,0.18), 0 0 80px rgba(139,92,246,0.12)",
+            neonPink: "0 0 35px rgba(236,72,153,0.25)",
+            glowCard: "0 10px 30px -10px rgba(6,182,212,0.15)",
+          },
+          animation: {
+            float: "float 6s ease-in-out infinite",
+            pulseSlow: "pulseSlow 3s ease-in-out infinite",
+            shimmer: "shimmer 2.5s infinite",
+          },
+          keyframes: {
+            float: {
+              "0%, 100%": { transform: "translateY(0)" },
+              "50%": { transform: "translateY(-10px)" },
+            },
+            pulseSlow: {
+              "0%, 100%": { opacity: "0.2" },
+              "50%": { opacity: "0.45" },
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at 10% 8%, rgba(6, 182, 212, 0.14), transparent 32%),
+        radial-gradient(circle at 90% 18%, rgba(139, 92, 246, 0.14), transparent 32%),
+        radial-gradient(circle at 50% 55%, rgba(236, 72, 153, 0.08), transparent 36%),
+        radial-gradient(circle at 20% 90%, rgba(16, 185, 129, 0.07), transparent 30%),
+        #020617;
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    /* Equalizer Bar Animation */
+    .equalizer-bar {
+      display: inline-block;
+      width: 4px;
+      border-radius: 9999px;
+      background: currentColor;
+      transform-origin: bottom;
+      transition: height 0.15s ease;
+    }
+
+    .equalizer.active .equalizer-bar {
+      animation: bounceEqualizer 0.8s ease-in-out infinite alternate;
+    }
+
+    .equalizer.active .equalizer-bar:nth-child(1) { animation-delay: 0.1s; }
+    .equalizer.active .equalizer-bar:nth-child(2) { animation-delay: 0.3s; }
+    .equalizer.active .equalizer-bar:nth-child(3) { animation-delay: 0.15s; }
+    .equalizer.active .equalizer-bar:nth-child(4) { animation-delay: 0.4s; }
+    .equalizer.active .equalizer-bar:nth-child(5) { animation-delay: 0.25s; }
+
+    @keyframes bounceEqualizer {
+      0% { height: 6px; }
+      50% { height: 26px; }
+      100% { height: 12px; }
+    }
+
+    /* Sound Waveform animation */
+    .wave-line {
+      stroke-dasharray: 600;
+      stroke-dashoffset: 600;
+      animation: drawWave 3.5s ease-out forwards;
+    }
+
+    @keyframes drawWave {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /* Glow Button Pulse */
+    .btn-glow {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .btn-glow::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: inherit;
+      background: inherit;
+      filter: blur(14px);
+      opacity: 0.4;
+      z-index: -1;
+      transition: opacity 0.3s ease;
+    }
+
+    .btn-glow:hover::after {
+      opacity: 0.8;
+      filter: blur(18px);
+    }
+  </style>
+</head>
+
+<body class="antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- Ambient Grid Background -->
+  <div class="grid-bg fixed inset-0 -z-10 pointer-events-none"></div>
+
+  <!-- NAVIGATION -->
+  <header class="sticky top-0 z-50 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl transition-all">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      
+      <!-- Brand Logo -->
+      <a href="/studio" class="group flex items-center gap-3">
+        <div class="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-cyan-400/40 bg-slate-900 shadow-[0_0_15px_rgba(6,182,212,0.3)] transition group-hover:scale-105 group-hover:border-cyan-400">
+          <img src="/images/logo-rock-machine.png" alt="Rock Machine" class="h-8 w-8 object-contain" />
+        </div>
+        <div>
+          <span class="font-display text-xl font-bold uppercase tracking-[0.2em] text-white">
+            Rock <span class="text-cyan-400">Machine</span>
+          </span>
+          <span class="hidden text-[10px] font-semibold tracking-widest text-slate-400 sm:block">
+            INTERACTIVE AUDIO LAB
+          </span>
+        </div>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+        <a href="#hero" class="transition hover:text-cyan-300">Início</a>
+        <a href="#sobre" class="transition hover:text-cyan-300">Sobre o Projeto</a>
+        <a href="#como-funciona" class="transition hover:text-cyan-300">Como Funciona</a>
+        <a href="#simulador" class="transition hover:text-cyan-300">Simulador Stems</a>
+        <a href="#arquitetura" class="transition hover:text-cyan-300">Arquitetura</a>
+      </nav>
+
+      <!-- Action Button (Direct Link to Playlist) -->
+      <div class="flex items-center gap-3">
+        <a
+          href="/playlist"
+          class="btn-glow inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-950 shadow-neon transition hover:from-cyan-300 hover:to-cyan-400 hover:scale-105"
+        >
+          <span class="text-base">▶</span>
+          <span>Playlist Pública</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- ============================================================== -->
+    <!-- HERO SECTION (SESSÃO DE ENTRADA PARA CHAMAR ATENÇÃO) -->
+    <!-- ============================================================== -->
+    <section id="hero" class="relative mt-2 overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-12 lg:p-16 shadow-neon backdrop-blur-2xl">
+      
+      <!-- Glowing Orbs inside Card -->
+      <div class="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-cyan-500/15 blur-3xl animate-pulseSlow"></div>
+      <div class="pointer-events-none absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-purple-500/15 blur-3xl animate-pulseSlow" style="animation-delay: 1.5s;"></div>
+      <div class="pointer-events-none absolute left-1/2 top-1/3 h-80 w-80 -translate-x-1/2 rounded-full bg-pink-500/10 blur-3xl"></div>
+
+      <div class="relative z-10 mx-auto max-w-4xl text-center">
+
+        <!-- Top Pill Badge -->
+        <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300 backdrop-blur-md">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-cyan-500"></span>
+          </span>
+          Instalação Sonora Interativa // Stems & RFID
+        </div>
+
+        <!-- Featured Logo with Neon Aura -->
+        <div class="my-6 flex justify-center">
+          <div class="relative inline-block animate-float">
+            <div class="absolute inset-0 rounded-full bg-cyan-500/30 blur-2xl"></div>
+            <img
+              src="/images/logo-rock-machine.png"
+              alt="Rock Machine Logo"
+              class="relative h-24 sm:h-32 md:h-40 w-auto object-contain drop-shadow-[0_0_35px_rgba(6,182,212,0.45)]"
+            />
+          </div>
+        </div>
+
+        <!-- Main Eye-catching Headline -->
+        <h1 class="font-display text-4xl sm:text-6xl md:text-7xl font-extrabold uppercase tracking-tight text-white">
+          Onde Cada Interação <br />
+          <span class="bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+            Vira Música
+          </span>
+        </h1>
+
+        <!-- Engaging Subtitle -->
+        <p class="mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed text-slate-300">
+          Bem-vindo à <strong class="text-white font-semibold">Rock Machine</strong>: a experiência que une fichas físicas com tecnologia RFID, motor de áudio multitrack em tempo real e publicação na nuvem. Crie batidas, combine camadas sonoras e compartilhe seu som com o mundo.
+        </p>
+
+        <!-- CTA BUTTONS GROUP -->
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          
+          <!-- MAIN BUTTON REDIRECTING TO /playlist -->
+          <a
+            id="btnPlaylistPrincipal"
+            href="/playlist"
+            class="btn-glow group flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400 px-8 py-4 text-base font-extrabold text-slate-950 shadow-[0_0_30px_rgba(6,182,212,0.35)] transition hover:scale-105 hover:shadow-[0_0_45px_rgba(6,182,212,0.55)]"
+          >
+            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-950 text-cyan-300 group-hover:rotate-12 transition">
+              ▶
+            </span>
+            <span>Acessar Playlist Pública</span>
+            <span class="rounded-md bg-slate-950/20 px-2 py-0.5 text-xs uppercase tracking-wider text-slate-950">
+              /playlist
+            </span>
+          </a>
+
+          <!-- Secondary Button: Explore Project -->
+          <a
+            href="#sobre"
+            class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800/80 px-7 py-4 text-sm font-semibold text-slate-200 backdrop-blur-md transition hover:border-cyan-400/50 hover:bg-slate-800 hover:text-white"
+          >
+            <span>Conhecer o Projeto</span>
+            <span>↓</span>
+          </a>
+
+          <!-- Optional Button: Publicar Faixa -->
+          <a
+            href="/publicar"
+            class="flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-6 py-4 text-sm font-semibold text-purple-300 backdrop-blur-md transition hover:border-purple-400/60 hover:bg-purple-500/20 hover:text-purple-200"
+          >
+            <span>＋</span>
+            <span>Publicar Música</span>
+          </a>
+        </div>
+
+        <!-- Quick Machine Metrics Cards -->
+        <div class="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 text-left">
+          
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 backdrop-blur-md transition hover:border-cyan-400/40">
+            <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Sincronização</p>
+            <p class="mt-1 font-display text-2xl sm:text-3xl font-bold text-cyan-300">117 BPM</p>
+            <p class="text-[11px] text-slate-400">Loop 16 Compassos</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 backdrop-blur-md transition hover:border-purple-400/40">
+            <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Hardware Físico</p>
+            <p class="mt-1 font-display text-2xl sm:text-3xl font-bold text-purple-300">RFID</p>
+            <p class="text-[11px] text-slate-400">Leitura Instantânea</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 backdrop-blur-md transition hover:border-pink-400/40">
+            <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Qualidade de Som</p>
+            <p class="mt-1 font-display text-2xl sm:text-3xl font-bold text-pink-300">44.1 kHz</p>
+            <p class="text-[11px] text-slate-400">WAV Lossless Estéreo</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 backdrop-blur-md transition hover:border-emerald-400/40">
+            <p class="text-[11px] font-semibold uppercase tracking-widest text-slate-500">Cloud Storage</p>
+            <p class="mt-1 font-display text-2xl sm:text-3xl font-bold text-emerald-300">Supabase</p>
+            <p class="text-[11px] text-slate-400">+ MongoDB Atlas</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- INTERACTIVE SECTION: VIRTUAL STEM SIMULATOR -->
+    <!-- ============================================================== -->
+    <section id="simulador" class="mt-14 scroll-mt-24">
+      
+      <div class="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-10 shadow-neon backdrop-blur-xl">
+        
+        <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between border-b border-slate-800 pb-8">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+              <p class="font-display text-xs font-bold uppercase tracking-[0.3em] text-cyan-300">
+                Live Preview // Experiência Sonora
+              </p>
+            </div>
+            <h2 class="mt-2 font-display text-3xl sm:text-4xl font-bold uppercase tracking-tight text-white">
+              Simulador de Trilhas da Máquina
+            </h2>
+            <p class="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+              Na máquina física, cada ficha RFID inserida liga ou desliga uma camada sonora sincronizada. Experimente os 4 canais abaixo com sintetizador nativo via Web Audio:
+            </p>
+          </div>
+
+          <!-- Master Simulator Controls -->
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              id="btnMasterJam"
+              type="button"
+              class="btn-glow flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-neon transition hover:scale-105"
+            >
+              <span id="jamIcon">▶</span>
+              <span id="jamLabel">Iniciar Demonstração Sonora</span>
+            </button>
+            <div class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-xs font-semibold text-slate-300">
+              <span class="text-cyan-400 font-bold">117</span> BPM MASTER
+            </div>
+          </div>
+        </div>
+
+        <!-- The 4 Stems Track Deck -->
+        <div class="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <!-- Track 1: DRUMS (Slot 0 RFID) -->
+          <div id="cardDrums" class="group relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-950/70 p-5 transition hover:border-cyan-400 hover:shadow-[0_0_25px_rgba(6,182,212,0.2)]">
+            <div class="flex items-center justify-between">
+              <span class="rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-cyan-300">
+                Slot 0 // RFID
+              </span>
+              <span class="text-xl">🥁</span>
+            </div>
+            <h3 class="mt-4 font-display text-2xl font-bold uppercase tracking-wide text-white">
+              Bateria
+            </h3>
+            <p class="text-xs text-slate-400">Kick, Snare & Hi-Hat Groove</p>
+            
+            <!-- Equalizer Bars -->
+            <div class="my-5 flex items-end justify-center gap-1.5 h-10 equalizer text-cyan-400" id="eqDrums">
+              <span class="equalizer-bar" style="height: 14px;"></span>
+              <span class="equalizer-bar" style="height: 24px;"></span>
+              <span class="equalizer-bar" style="height: 18px;"></span>
+              <span class="equalizer-bar" style="height: 28px;"></span>
+              <span class="equalizer-bar" style="height: 16px;"></span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+              <span class="text-xs font-medium text-slate-400">Status</span>
+              <button
+                type="button"
+                data-track="drums"
+                class="track-toggle rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-3 py-1 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500/30"
+              >
+                ATIVO
+              </button>
+            </div>
+          </div>
+
+          <!-- Track 2: VOCALS (Slot 1 RFID) -->
+          <div id="cardVocals" class="group relative overflow-hidden rounded-2xl border border-pink-500/30 bg-slate-950/70 p-5 transition hover:border-pink-400 hover:shadow-[0_0_25px_rgba(236,72,153,0.2)]">
+            <div class="flex items-center justify-between">
+              <span class="rounded-lg border border-pink-400/30 bg-pink-400/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-pink-300">
+                Slot 1 // RFID
+              </span>
+              <span class="text-xl">🎙️</span>
+            </div>
+            <h3 class="mt-4 font-display text-2xl font-bold uppercase tracking-wide text-white">
+              Voz
+            </h3>
+            <p class="text-xs text-slate-400">Vocal Stems & Harmonias</p>
+            
+            <!-- Equalizer Bars -->
+            <div class="my-5 flex items-end justify-center gap-1.5 h-10 equalizer text-pink-400" id="eqVocals">
+              <span class="equalizer-bar" style="height: 10px;"></span>
+              <span class="equalizer-bar" style="height: 20px;"></span>
+              <span class="equalizer-bar" style="height: 26px;"></span>
+              <span class="equalizer-bar" style="height: 18px;"></span>
+              <span class="equalizer-bar" style="height: 12px;"></span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+              <span class="text-xs font-medium text-slate-400">Status</span>
+              <button
+                type="button"
+                data-track="vocals"
+                class="track-toggle rounded-lg border border-pink-500/40 bg-pink-500/20 px-3 py-1 text-xs font-bold text-pink-300 transition hover:bg-pink-500/30"
+              >
+                ATIVO
+              </button>
+            </div>
+          </div>
+
+          <!-- Track 3: BASS / BAIXO -->
+          <div id="cardBass" class="group relative overflow-hidden rounded-2xl border border-purple-500/30 bg-slate-950/70 p-5 transition hover:border-purple-400 hover:shadow-[0_0_25px_rgba(139,92,246,0.2)]">
+            <div class="flex items-center justify-between">
+              <span class="rounded-lg border border-purple-400/30 bg-purple-400/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-purple-300">
+                Base // Groove
+              </span>
+              <span class="text-xl">⚡</span>
+            </div>
+            <h3 class="mt-4 font-display text-2xl font-bold uppercase tracking-wide text-white">
+              Contrabaixo
+            </h3>
+            <p class="text-xs text-slate-400">Sub-bass & Linha Rítmica</p>
+            
+            <!-- Equalizer Bars -->
+            <div class="my-5 flex items-end justify-center gap-1.5 h-10 equalizer text-purple-400" id="eqBass">
+              <span class="equalizer-bar" style="height: 18px;"></span>
+              <span class="equalizer-bar" style="height: 14px;"></span>
+              <span class="equalizer-bar" style="height: 22px;"></span>
+              <span class="equalizer-bar" style="height: 16px;"></span>
+              <span class="equalizer-bar" style="height: 20px;"></span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+              <span class="text-xs font-medium text-slate-400">Status</span>
+              <button
+                type="button"
+                data-track="bass"
+                class="track-toggle rounded-lg border border-purple-500/40 bg-purple-500/20 px-3 py-1 text-xs font-bold text-purple-300 transition hover:bg-purple-500/30"
+              >
+                ATIVO
+              </button>
+            </div>
+          </div>
+
+          <!-- Track 4: OTHER / GUITAR & SYNTH (Slot 2 RFID) -->
+          <div id="cardOther" class="group relative overflow-hidden rounded-2xl border border-amber-500/30 bg-slate-950/70 p-5 transition hover:border-amber-400 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)]">
+            <div class="flex items-center justify-between">
+              <span class="rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-300">
+                Slot 2 // RFID
+              </span>
+              <span class="text-xl">🎸</span>
+            </div>
+            <h3 class="mt-4 font-display text-2xl font-bold uppercase tracking-wide text-white">
+              Guitarras & FX
+            </h3>
+            <p class="text-xs text-slate-400">Riffs, Solos & Sintetizadores</p>
+            
+            <!-- Equalizer Bars -->
+            <div class="my-5 flex items-end justify-center gap-1.5 h-10 equalizer text-amber-400" id="eqOther">
+              <span class="equalizer-bar" style="height: 12px;"></span>
+              <span class="equalizer-bar" style="height: 22px;"></span>
+              <span class="equalizer-bar" style="height: 15px;"></span>
+              <span class="equalizer-bar" style="height: 26px;"></span>
+              <span class="equalizer-bar" style="height: 14px;"></span>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-800/80 pt-3">
+              <span class="text-xs font-medium text-slate-400">Status</span>
+              <button
+                type="button"
+                data-track="other"
+                class="track-toggle rounded-lg border border-amber-500/40 bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-300 transition hover:bg-amber-500/30"
+              >
+                ATIVO
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <span class="text-cyan-400 font-bold">💡 Dica:</span>
+            <span>Clique no botão "Iniciar Demonstração" acima para escutar a síntese de áudio interativa direto no seu navegador!</span>
+          </div>
+          <a href="/playlist" class="font-semibold text-cyan-300 hover:underline">
+            Quer ouvir músicas completas reais gravadas? Vá para a Playlist →
+          </a>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- ABOUT THE PROJECT (SOBRE O PROJETO) -->
+    <!-- ============================================================== -->
+    <section id="sobre" class="mt-14 scroll-mt-24">
+
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-12 items-center">
+        
+        <div class="lg:col-span-6 space-y-6">
+          
+          <div class="inline-flex items-center gap-2 rounded-full border border-purple-400/30 bg-purple-400/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-purple-300">
+            A Proposta do Projeto
+          </div>
+
+          <h2 class="font-display text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white">
+            Música Tangível, <br />
+            <span class="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+              Colaborativa e Aberta
+            </span>
+          </h2>
+
+          <p class="text-base leading-relaxed text-slate-300">
+            A <strong class="text-white">Rock Machine</strong> foi criada para quebrar a barreira de entrada da produção musical. Em vez de softwares complexos cheios de menus e curvas de aprendizado, nossa instalação física utiliza <strong class="text-cyan-300 font-medium">fichas táteis com tags RFID</strong>.
+          </p>
+
+          <p class="text-base leading-relaxed text-slate-300">
+            Cada posição na máquina física é mapeada para um instrumento fixo: bateria, voz, harmonia ou efeitos imediatos. Qualquer pessoa — mesmo sem experiência musical anterior — pode encaixar uma ficha e se tornar co-autor de um remix autêntico e de alta qualidade.
+          </p>
+
+          <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition hover:border-slate-700">
+              <span class="text-2xl">🖐️</span>
+              <h4 class="mt-2 font-display text-lg font-bold uppercase text-white">Sem Teclados, Só Gestos</h4>
+              <p class="mt-1 text-xs text-slate-400">Interação tátil intuitiva: coloque a ficha, o som começa. Retire a ficha, o som cessa.</p>
+            </div>
+
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition hover:border-slate-700">
+              <span class="text-2xl">⚡</span>
+              <h4 class="mt-2 font-display text-lg font-bold uppercase text-white">Sincronia Algorítmica</h4>
+              <p class="mt-1 text-xs text-slate-400">Todos os loops de áudio rodam alinhados no mesmo BPM e compasso quaternário.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Visual Feature Card -->
+        <div class="lg:col-span-6">
+          <div class="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-neon">
+            
+            <div class="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-cyan-500/10 blur-2xl"></div>
+            <div class="absolute -left-10 -bottom-10 h-48 w-48 rounded-full bg-purple-500/10 blur-2xl"></div>
+
+            <h3 class="font-display text-2xl font-bold uppercase tracking-wider text-white">
+              Os 3 Pilares da Rock Machine
+            </h3>
+            
+            <div class="mt-6 space-y-4">
+              
+              <!-- Pillar 1 -->
+              <div class="flex gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-cyan-400/40">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-400/10 font-display text-lg font-bold text-cyan-300">
+                  01
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">Hardware de Leitores RFID</h4>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-400">
+                    Sensores que lêem as UIDs das fichas em milissegundos e enviam dados via barramento serial direto ao núcleo do sistema.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Pillar 2 -->
+              <div class="flex gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-purple-400/40">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-purple-400/30 bg-purple-400/10 font-display text-lg font-bold text-purple-300">
+                  02
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">Gravação por Registro de Eventos</h4>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-400">
+                    Em vez de gravar ruído ou sofrer atrasos da placa de som, gravamos os instantes dos eventos físicos e recalculamos matematicamente o WAV final com fidelidade cirúrgica.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Pillar 3 -->
+              <div class="flex gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-pink-400/40">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-pink-400/30 bg-pink-400/10 font-display text-lg font-bold text-pink-300">
+                  03
+                </div>
+                <div>
+                  <h4 class="text-sm font-bold text-white">Distribuição Imediata na Nuvem</h4>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-400">
+                    A faixa gerada sobe instantaneamente para o Supabase Storage e para o MongoDB Atlas, gerando um link e QR Code para escuta imediata.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Mini banner inside -->
+            <div class="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-center">
+              <p class="text-xs font-semibold text-cyan-300">
+                Criou uma sessão? Ouça agora mesmo na nossa playlist colaborativa!
+              </p>
+              <a href="/playlist" class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-white hover:text-cyan-300 transition">
+                <span>Ir para a Playlist Pública</span>
+                <span>→</span>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- HOW IT WORKS (COMO FUNCIONA O FLUXO) -->
+    <!-- ============================================================== -->
+    <section id="como-funciona" class="mt-20 scroll-mt-24">
+      
+      <div class="text-center max-w-2xl mx-auto">
+        <span class="inline-block rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+          Passo a Passo
+        </span>
+        <h2 class="mt-4 font-display text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white">
+          Como Funciona o Ciclo Musical
+        </h2>
+        <p class="mt-3 text-slate-400 text-sm sm:text-base">
+          Do toque físico na máquina até a reprodução na palma da sua mão.
+        </p>
+      </div>
+
+      <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- Step 1 -->
+        <div class="relative rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl transition hover:border-cyan-400/50 hover:shadow-glowCard">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/40 bg-cyan-400/10 text-2xl font-bold text-cyan-300">
+            1
+          </div>
+          <h3 class="mt-5 font-display text-2xl font-bold uppercase text-white">
+            Escolha as Fichas
+          </h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-400">
+            Cada ficha física representa uma música ou stem específico. Você escolhe quais timbres de bateria, vocais e guitarras quer mesclar.
+          </p>
+          <div class="mt-4 flex items-center gap-2 text-xs text-cyan-300 font-semibold">
+            <span>🏷️ Tags RFID MFRC522</span>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="relative rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl transition hover:border-purple-400/50 hover:shadow-glowCard">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-purple-400/40 bg-purple-400/10 text-2xl font-bold text-purple-300">
+            2
+          </div>
+          <h3 class="mt-5 font-display text-2xl font-bold uppercase text-white">
+            Jam ao Vivo em 117 BPM
+          </h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-400">
+            O motor em Python sincroniza as faixas com precisão milimétrica. Conforme você troca as fichas, os solos e batidas se transformam em tempo real.
+          </p>
+          <div class="mt-4 flex items-center gap-2 text-xs text-purple-300 font-semibold">
+            <span>🎵 Motor SoundDevice & NumPy</span>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="relative rounded-3xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur-xl transition hover:border-pink-400/50 hover:shadow-glowCard">
+          <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-400/40 bg-pink-400/10 text-2xl font-bold text-pink-300">
+            3
+          </div>
+          <h3 class="mt-5 font-display text-2xl font-bold uppercase text-white">
+            Nuvem & Playlist Pública
+          </h3>
+          <p class="mt-2 text-sm leading-relaxed text-slate-400">
+            Ao finalizar a sessão, o WAV masterizado é enviado ao Supabase e cadastrado no MongoDB. Um QR Code é exibido para você ouvir e compartilhar.
+          </p>
+          <div class="mt-4 flex items-center gap-2 text-xs text-pink-300 font-semibold">
+            <span>☁️ Supabase + MongoDB + QR Code</span>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- ARCHITECTURE & PIPELINE (ARQUITETURA) -->
+    <!-- ============================================================== -->
+    <section id="arquitetura" class="mt-20 scroll-mt-24">
+      
+      <div class="rounded-3xl border border-slate-800 bg-slate-900/60 p-6 sm:p-10 backdrop-blur-2xl">
+        
+        <div class="max-w-2xl">
+          <span class="inline-block rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
+            Engenharia do Sistema
+          </span>
+          <h2 class="mt-3 font-display text-3xl sm:text-4xl font-bold uppercase tracking-tight text-white">
+            Arquitetura de Ponta a Ponta
+          </h2>
+          <p class="mt-2 text-slate-400 text-sm">
+            Como os sinais físicos viajam até a nuvem e viram streaming público no navegador.
+          </p>
+        </div>
+
+        <!-- Flow Steps Graphic -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+          
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition hover:border-cyan-400/40">
+            <div class="text-xs font-semibold uppercase tracking-widest text-cyan-400">01. Hardware</div>
+            <p class="mt-2 text-base font-bold text-white">Sensores & Arduino</p>
+            <p class="mt-1 text-xs text-slate-400">Leitores MFRC522 lêem as tags RFID e enviam os UIDs via serial (USB) para a máquina local.</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition hover:border-purple-400/40">
+            <div class="text-xs font-semibold uppercase tracking-widest text-purple-400">02. Core Engine</div>
+            <p class="mt-2 text-base font-bold text-white">Python DSP & Mixer</p>
+            <p class="mt-1 text-xs text-slate-400">SoundDevice + NumPy controlam os buffers estéreo a 44100Hz, fazendo mixagem sem distorção e sem perda de BPM.</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition hover:border-pink-400/40">
+            <div class="text-xs font-semibold uppercase tracking-widest text-pink-400">03. Backend & Cloud</div>
+            <p class="mt-2 text-base font-bold text-white">FastAPI & Supabase</p>
+            <p class="mt-1 text-xs text-slate-400">API FastAPI recebe o áudio gerado, faz upload seguro para o bucket Supabase e guarda metadados no MongoDB Atlas.</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 transition hover:border-emerald-400/40">
+            <div class="text-xs font-semibold uppercase tracking-widest text-emerald-400">04. Distribuição</div>
+            <p class="mt-2 text-base font-bold text-white">Playlist & QR Code</p>
+            <p class="mt-1 text-xs text-slate-400">A página /playlist lista todas as criações da comunidade com streaming direto no navegador de qualquer dispositivo.</p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- PLAYLIST CALLOUT BANNER (DESTAQUE QR CODE & REDIRECIONAMENTO) -->
+    <!-- ============================================================== -->
+    <section class="mt-20">
+      
+      <div class="relative overflow-hidden rounded-3xl border border-cyan-400/30 bg-gradient-to-r from-slate-900 via-slate-900/90 to-cyan-950/40 p-8 sm:p-12 shadow-neon backdrop-blur-2xl">
+        
+        <div class="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl"></div>
+        <div class="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-purple-500/15 blur-3xl"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+          
+          <div class="max-w-2xl text-center lg:text-left">
+            
+            <div class="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
+              Ouça as Faixas Criadas
+            </div>
+
+            <h2 class="mt-4 font-display text-3xl sm:text-5xl font-bold uppercase tracking-tight text-white">
+              Descubra a <span class="text-cyan-300">Playlist Pública</span>
+            </h2>
+
+            <p class="mt-3 text-base leading-relaxed text-slate-300">
+              Todas as músicas criadas na Rock Machine ficam disponíveis gratuitamente para streaming. Escute pelo computador ou aponte a câmera do seu celular para o QR Code ao lado.
+            </p>
+
+            <div class="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-4">
+              
+              <!-- Direct Button to /playlist -->
+              <a
+                href="/playlist"
+                class="btn-glow inline-flex items-center gap-3 rounded-2xl bg-cyan-400 px-8 py-4 text-base font-extrabold text-slate-950 shadow-neon transition hover:bg-cyan-300 hover:scale-105"
+              >
+                <span>▶ Abrir /playlist Agora</span>
+              </a>
+
+              <a
+                href="/publicar"
+                class="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-800/80 px-6 py-4 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/40 hover:bg-slate-800"
+              >
+                <span>Enviar Outra Faixa</span>
+                <span>↗</span>
+              </a>
+
+            </div>
+
+          </div>
+
+          <!-- QR Code Card -->
+          <div class="shrink-0 text-center">
+            
+            <div class="group relative inline-block rounded-2xl border border-cyan-400/40 bg-slate-950 p-4 shadow-[0_0_30px_rgba(6,182,212,0.25)] transition hover:scale-105 hover:border-cyan-300">
+              
+              <img
+                src="/images/qrcode_playlist.png"
+                alt="QR Code da Playlist Rock Machine"
+                class="h-44 w-44 sm:h-52 sm:w-52 rounded-xl object-contain bg-white p-2"
+              />
+
+              <div class="mt-3">
+                <span class="font-display text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+                  Escaneie com o Celular
+                </span>
+                <p class="text-[11px] text-slate-400">Acesso instantâneo à Playlist</p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- FOOTER ("QUERO QUE TENHA UM FOOTER") -->
+  <!-- ============================================================== -->
+  <footer class="mt-24 border-t border-slate-800/80 bg-slate-950/90 pt-16 pb-12 backdrop-blur-xl">
+    
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
+
+        <!-- Column 1: Brand Info -->
+        <div class="lg:col-span-2 space-y-4">
+          
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/40 bg-slate-900 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+              <img src="/images/logo-rock-machine.png" alt="Rock Machine" class="h-7 w-7 object-contain" />
+            </div>
+            <span class="font-display text-2xl font-bold uppercase tracking-[0.18em] text-white">
+              Rock <span class="text-cyan-400">Machine</span>
+            </span>
+          </div>
+
+          <p class="max-w-sm text-sm leading-relaxed text-slate-400">
+            <em>Onde cada interação vira música.</em> Instalação interativa e laboratório de remix ao vivo conectando hardware RFID à nuvem.
+          </p>
+
+          <div class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Sistema Operacional Online & Nuvem Ativa
+          </div>
+
+        </div>
+
+        <!-- Column 2: Navegação -->
+        <div>
+          <h4 class="font-display text-sm font-bold uppercase tracking-widest text-cyan-300">
+            Navegação
+          </h4>
+          <ul class="mt-4 space-y-2.5 text-sm text-slate-400">
+            <li>
+              <a href="#hero" class="transition hover:text-white">Início</a>
+            </li>
+            <li>
+              <a href="/playlist" class="font-semibold text-cyan-300 hover:text-cyan-200 transition">
+                Playlist Pública →
+              </a>
+            </li>
+            <li>
+              <a href="/publicar" class="transition hover:text-white">Publicar Música</a>
+            </li>
+            <li>
+              <a href="#simulador" class="transition hover:text-white">Simulador de Stems</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Column 3: O Projeto -->
+        <div>
+          <h4 class="font-display text-sm font-bold uppercase tracking-widest text-purple-300">
+            Sobre o Projeto
+          </h4>
+          <ul class="mt-4 space-y-2.5 text-sm text-slate-400">
+            <li>
+              <a href="#sobre" class="transition hover:text-white">Conceito Musical</a>
+            </li>
+            <li>
+              <a href="#como-funciona" class="transition hover:text-white">Como Funciona</a>
+            </li>
+            <li>
+              <a href="#arquitetura" class="transition hover:text-white">Hardware RFID</a>
+            </li>
+            <li>
+              <a href="#arquitetura" class="transition hover:text-white">Gravação por Eventos</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Column 4: Tecnologias -->
+        <div>
+          <h4 class="font-display text-sm font-bold uppercase tracking-widest text-pink-300">
+            Stack Tecnológica
+          </h4>
+          <ul class="mt-4 space-y-2 text-xs text-slate-400">
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400">●</span> Python SoundDevice & NumPy
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-cyan-400">●</span> FastAPI & Uvicorn
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400">●</span> Supabase Cloud Storage
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-purple-400">●</span> MongoDB Atlas Database
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-pink-400">●</span> Hardware RFID MFRC522
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800/80 pt-8 text-xs text-slate-400">
+        
+        <p>
+          &copy; 2026 <strong>Rock Machine</strong>. Desenvolvido para experiências sonoras inesquecíveis.
+        </p>
+
+        <div class="flex items-center gap-6">
+          <a href="/playlist" class="text-cyan-400 hover:underline">
+            Ouvir /playlist
+          </a>
+          <button
+            type="button"
+            onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+            class="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition"
+          >
+            <span>Voltar ao topo</span>
+            <span>↑</span>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT: VIRTUAL STEM SIMULATOR AUDIO SYNTHESIZER -->
+  <!-- ============================================================== -->
+  <script>
+    (() => {
+      // Audio Synth state
+      let audioCtx = null;
+      let isPlaying = false;
+      let timerId = null;
+      let currentStep = 0;
+
+      // Track active states
+      const trackState = {
+        drums: true,
+        vocals: true,
+        bass: true,
+        other: true
+      };
+
+      const btnMasterJam = document.getElementById("btnMasterJam");
+      const jamIcon = document.getElementById("jamIcon");
+      const jamLabel = document.getElementById("jamLabel");
+
+      const trackCards = {
+        drums: document.getElementById("cardDrums"),
+        vocals: document.getElementById("cardVocals"),
+        bass: document.getElementById("cardBass"),
+        other: document.getElementById("cardOther")
+      };
+
+      const eqContainers = {
+        drums: document.getElementById("eqDrums"),
+        vocals: document.getElementById("eqVocals"),
+        bass: document.getElementById("eqBass"),
+        other: document.getElementById("eqOther")
+      };
+
+      // Set active animations for equalizers
+      function updateVisuals() {
+        Object.keys(trackState).forEach(track => {
+          const isActive = trackState[track];
+          const eq = eqContainers[track];
+          const card = trackCards[track];
+
+          if (isPlaying && isActive) {
+            eq.classList.add("active");
+            card.classList.add("border-opacity-100");
+          } else {
+            eq.classList.remove("active");
+            card.classList.remove("border-opacity-100");
+          }
+        });
+      }
+
+      // Initialize Web Audio Context
+      function initAudio() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContextClass();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+      }
+
+      // Drum sound generator
+      function playKick(time) {
+        if (!trackState.drums) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(140, time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.35);
+        gain.gain.setValueAtTime(0.8, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.35);
+      }
+
+      function playSnare(time) {
+        if (!trackState.drums) return;
+        // Noise buffer
+        const bufferSize = audioCtx.sampleRate * 0.15;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.setValueAtTime(1000, time);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.4, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start(time);
+        noise.stop(time + 0.15);
+      }
+
+      function playHihat(time) {
+        if (!trackState.drums) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(8000, time);
+        gain.gain.setValueAtTime(0.08, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.05);
+      }
+
+      // Bass synth generator (rock root notes at 117 BPM)
+      const bassNotes = [110, 110, 130.8, 146.8, 110, 110, 98, 123.5];
+      function playBass(time, step) {
+        if (!trackState.bass) return;
+        const freq = bassNotes[step % bassNotes.length];
+        const osc = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(freq, time);
+
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(600, time);
+        filter.frequency.exponentialRampToValueAtTime(150, time + 0.22);
+
+        gain.gain.setValueAtTime(0.35, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.25);
+      }
+
+      // Synth Guitar / Lead melody notes
+      const leadNotes = [220, 261.6, 293.7, 329.6, 392, 329.6, 293.7, 261.6];
+      function playLead(time, step) {
+        if (!trackState.other) return;
+        const freq = leadNotes[(step * 2) % leadNotes.length];
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, time);
+
+        gain.gain.setValueAtTime(0.2, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.35);
+      }
+
+      // Vocal harmonic synth simulation
+      const vocalChords = [329.63, 440, 523.25, 440];
+      function playVocalPad(time, step) {
+        if (!trackState.vocals) return;
+        if (step % 4 !== 0) return;
+        const freq = vocalChords[(step / 4) % vocalChords.length];
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, time);
+
+        gain.gain.setValueAtTime(0.001, time);
+        gain.gain.linearRampToValueAtTime(0.18, time + 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.8);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + 0.8);
+      }
+
+      // 117 BPM Step Sequencer Clock
+      const BPM = 117;
+      const stepDuration = 60 / BPM / 2; // 8th notes
+
+      function stepTick() {
+        if (!isPlaying || !audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        // Drums rhythm: Kick on 0, 4. Snare on 2, 6. Hihat on all.
+        if (currentStep % 4 === 0) playKick(now);
+        if (currentStep % 4 === 2) playSnare(now);
+        playHihat(now);
+
+        // Bassline
+        playBass(now, currentStep);
+
+        // Lead Guitar & Synth
+        playLead(now, currentStep);
+
+        // Vocals
+        playVocalPad(now, currentStep);
+
+        currentStep = (currentStep + 1) % 16;
+      }
+
+      // Master button toggle
+      btnMasterJam.addEventListener("click", () => {
+        initAudio();
+
+        if (isPlaying) {
+          isPlaying = false;
+          clearInterval(timerId);
+          jamIcon.textContent = "▶";
+          jamLabel.textContent = "Iniciar Demonstração Sonora";
+          btnMasterJam.classList.remove("from-pink-500", "to-purple-600");
+          btnMasterJam.classList.add("from-cyan-400", "to-purple-500");
+          updateVisuals();
+        } else {
+          isPlaying = true;
+          currentStep = 0;
+          timerId = setInterval(stepTick, stepDuration * 1000);
+          jamIcon.textContent = "⏸";
+          jamLabel.textContent = "Pausar Demonstração";
+          btnMasterJam.classList.remove("from-cyan-400", "to-purple-500");
+          btnMasterJam.classList.add("from-pink-500", "to-purple-600");
+          updateVisuals();
+        }
+      });
+
+      // Individual Track Toggles
+      document.querySelectorAll(".track-toggle").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          const track = e.target.getAttribute("data-track");
+          trackState[track] = !trackState[track];
+
+          if (trackState[track]) {
+            e.target.textContent = "ATIVO";
+            e.target.className = "track-toggle rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-3 py-1 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500/30";
+          } else {
+            e.target.textContent = "MUDO";
+            e.target.className = "track-toggle rounded-lg border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold text-slate-400 transition hover:bg-slate-700";
+          }
+
+          updateVisuals();
+        });
+      });
+
+    })();
+  </script>
+
+</body>
+</html>

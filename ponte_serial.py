@@ -38,16 +38,62 @@ INSTRUMENTO_POR_POSICAO = {
 }
 
 # UID de ficha "normal" -> nome da música (a pasta dentro de stems_prontos/)
+#
+# Cada ficha agora possui:
+# - musica: nome da música
+# - artista: artista da música
+# - tipo: instrumento/categoria da camada
+#
+# O campo "tipo" será útil posteriormente para a interface.
+#
+# Os artistas ainda podem ser preenchidos.
+
 UID_PARA_MUSICA = {
-    "73660EF7": "Smells Like Teen Spirit",
-    "41CA4B73": "Tempos Modernos",
-    "F9376A48": "Billie Jean",
-    "1AD3781A": "Smells Like Teen Spirit",
-    "2A634C73": "Tempos Modernos",
-    "21615573": "Payphone",
-    "86AF4183": "In the End",
+    "73660EF7": {
+        "musica": "Smells Like Teen Spirit",
+        "artista": "",
+        "tipo": "drums",
+    },
+
+    "41CA4B73": {
+        "musica": "Tempos Modernos",
+        "artista": "",
+        "tipo": "drums",
+    },
+
+    "F9376A48": {
+        "musica": "Billie Jean",
+        "artista": "",
+        "tipo": "vocals",
+    },
+
+    "1AD3781A": {
+        "musica": "Smells Like Teen Spirit",
+        "artista": "",
+        "tipo": "vocals",
+    },
+
+    "2A634C73": {
+        "musica": "Tempos Modernos",
+        "artista": "",
+        "tipo": "vocals",
+    },
+
+    "21615573": {
+        "musica": "Payphone",
+        "artista": "",
+        "tipo": "other",
+    },
+
+    "86AF4183": {
+        "musica": "In the End",
+        "artista": "",
+        "tipo": "other",
+    },
+
     # adicione mais linhas aqui conforme cadastrarem novas fichas
 }
+
 
 # UID de ficha "efeito" -> (pasta da música, nome do arquivo de efeito)
 # O arquivo precisa existir em stems_prontos/<pasta>/<arquivo>.wav
@@ -61,6 +107,11 @@ UID_PARA_EFEITO = {
 # posicao_id -> "normal" ou "efeito", pra saber qual método chamar no OFF
 _tipo_ativo_por_posicao = {}
 
+def obter_dados_musica(uid):
+    """
+    Retorna os dados cadastrados da música associada ao UID.
+    """
+    return UID_PARA_MUSICA.get(uid)
 
 def processar_linha(linha, player):
     linha = linha.strip()
@@ -85,17 +136,37 @@ def processar_linha(linha, player):
             _tipo_ativo_por_posicao[posicao] = "efeito"
             return
 
-        if uid in UID_PARA_MUSICA:
+        # =========================
+        # MÚSICA NORMAL
+        # =========================
+
+        dados_musica = obter_dados_musica(uid)
+
+        if dados_musica:
             instrumento = INSTRUMENTO_POR_POSICAO.get(posicao)
+
             if instrumento is None:
-                print(f"[AVISO] Posição {posicao} sem instrumento mapeado.")
+                print(
+                    f"[AVISO] Posição {posicao} "
+                    "sem instrumento mapeado."
+                )
                 return
-            musica = UID_PARA_MUSICA[uid]
-            player.colocar_ficha(posicao, musica, instrumento)
+
+            musica = dados_musica["musica"]
+
+            player.colocar_ficha(
+                posicao,
+                musica,
+                instrumento
+            )
+
             _tipo_ativo_por_posicao[posicao] = "normal"
             return
 
-        print(f"[AVISO] UID desconhecido: {uid} — cadastre em UID_PARA_MUSICA ou UID_PARA_EFEITO.")
+        print(
+            f"[AVISO] UID desconhecido: {uid} "
+            "— cadastre em UID_PARA_MUSICA ou UID_PARA_EFEITO."
+        )
 
     elif linha.startswith("OFF:"):
         partes = linha.split(":")

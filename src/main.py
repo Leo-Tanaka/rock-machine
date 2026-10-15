@@ -3,20 +3,47 @@ import os
 from pathlib import Path
 from uuid import uuid4
 from datetime import datetime, timezone
+import requests
 
+import json
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from supabase import create_client, Client
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 from src.database import musicas_collection
 from dotenv import load_dotenv
+
+# URL do backend público
+URL_BACKEND_PUBLICO = os.getenv(
+    "URL_BACKEND_PUBLICO",
+    "https://rock-machine.onrender.com"
+).rstrip("/")
+
+# O Render define essa variável automaticamente
+ESTA_NO_RENDER = os.getenv("RENDER") == "true"
 
 app = FastAPI(
     title="Rock Machine API",
     description="API para a plataforma Rock Machine",
     version="1.0.0"
 )
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -51,52 +78,106 @@ if IMAGES_DIR.exists():
 
 @app.get("/")
 def inicio():
-    return FileResponse(BASE_DIR / "index.html")
+    return FileResponse(BASE_DIR / "frontend/studio.html")
 
 
 @app.get("/studio", include_in_schema=False)
 def studio():
-    return FileResponse(BASE_DIR / "inicio.html")
+    return FileResponse(BASE_DIR / "frontend/studio.html")
+
+
+@app.get("/mixer", include_in_schema=False)
+def mixer_stems():
+    return FileResponse(BASE_DIR / "frontend/index.html")
 
 
 @app.get("/app.js", include_in_schema=False)
 def javascript_do_studio():
     return FileResponse(
-        BASE_DIR / "app.js",
+        BASE_DIR / "frontend/js/app.js",
         media_type="application/javascript"
     )
 
 
 @app.get("/publicar", include_in_schema=False)
 def pagina_publicar():
-    return FileResponse(BASE_DIR / "publicar.html")
+    return FileResponse(BASE_DIR / "frontend/publicar.html")
+
+
+@app.get("/publicar_manual", include_in_schema=False)
+def pagina_publicar_manual():
+    return FileResponse(BASE_DIR / "frontend/publicar_manual.html")
 
 
 @app.get("/playlist", include_in_schema=False)
 def pagina_playlist():
-    return FileResponse(BASE_DIR / "playlist.html")
+    return FileResponse(BASE_DIR / "frontend/playlist.html")
 
 
 # Listar músicas
 @app.get("/musicas")
 def listar_musicas():
-    musicas = list(
-        musicas_collection.find().sort("data_criacao", -1)
-    )
+    # Quando estiver rodando localmente, consulta o Render.
+    if not ESTA_NO_RENDER:
+        try:
+            resposta = requests.get(
+                f"{URL_BACKEND_PUBLICO}/musicas",
+                timeout=45
+            )
+            resposta.raise_for_status()
+            return resposta.json()
 
-    for musica in musicas:
-        musica["_id"] = str(musica["_id"])
+        except requests.RequestException as erro:
+            print(f"Erro ao consultar o backend público: {erro}")
+            raise HTTPException(
+                status_code=502,
+                detail="Não foi possível consultar a playlist pública."
+            )
 
-    return musicas
+    # Quando estiver no Render, consulta o MongoDB diretamente.
+    try:
+        musicas = list(
+            musicas_collection.find().sort("data_criacao", -1)
+        )
+
+        for musica in musicas:
+            musica["_id"] = str(musica["_id"])
+
+        return musicas
+
+    except Exception as erro:
+        print(f"Erro ao consultar o MongoDB: {erro}")
+        raise HTTPException(
+            status_code=500,
+            detail="Não foi possível carregar as músicas."
+        )
+
 
 
 # Upload de uma música para o Supabase
 @app.post("/musicas/upload", status_code=201)
-def upload_musica(
+async def upload_musica(
     nome: str = Form(...),
     autor: str = Form(...),
-    arquivo: UploadFile = File(...)
+    arquivo: UploadFile = File(...),
+    camadas: str = Form("[]"),
 ):
+
+    try:
+        camadas_lista = json.loads(camadas)
+        print("CAMADAS RECEBIDAS:", repr(camadas))
+        print("CAMADAS CONVERTIDAS:", camadas_lista)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato inválido para as camadas."
+        )
+
+    if not isinstance(camadas_lista, list):
+        raise HTTPException(
+            status_code=400,
+            detail="As camadas devem ser uma lista."
+        )
     if Path(arquivo.filename or "").suffix.lower() != ".wav":
         raise HTTPException(
             status_code=400,
@@ -139,17 +220,21 @@ def upload_musica(
             "autor": autor,
             "arquivo": nome_arquivo,
             "url_audio": url_audio,
+            "camadas": camadas_lista, 
             "data_criacao": datetime.now(timezone.utc)
         }
 
         resultado = musicas_collection.insert_one(nova_musica)
+        print("ID DA MÚSICA SALVA:", resultado.inserted_id)
+        print("CAMADAS SALVAS:", nova_musica["camadas"])
 
         return {
             "mensagem": "Música enviada com sucesso!",
             "id": str(resultado.inserted_id),
             "nome": nome,
             "autor": autor,
-            "url_audio": url_audio
+            "url_audio": url_audio,
+            "camadas": camadas_lista,
         }
 
     except HTTPException:

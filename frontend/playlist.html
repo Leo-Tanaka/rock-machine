@@ -176,6 +176,14 @@
           <div class="flex flex-wrap gap-3">
 
             <a
+              href="/studio"
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/40 hover:bg-slate-800 hover:text-white"
+            >
+              <span>←</span>
+              Início / Studio
+            </a>
+
+            <a
               href="/publicar"
               class="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 hover:scale-105"
             >
@@ -620,10 +628,8 @@
     async function loadPlaylist() {
 
       try {
-
-        const response =
-          await fetch("/musicas");
-
+        
+        const response = await fetch("/musicas");
 
         if (!response.ok) {
 
