@@ -3,7 +3,7 @@
 <h1 align="center">Rock Machine — Playlist Pública</h1>
 
 <p align="center">
-  <img width="200" height="200" alt="Logo Rock Machine (2)" src="https://github.com/user-attachments/assets/d478bdb7-d90c-45ea-9606-9abba213ed78" />
+  <img width="200" height="200" alt="Logo Rock Machine" src="../images/logo-rock-machine.png" />
 </p>
 
 <p align="center">

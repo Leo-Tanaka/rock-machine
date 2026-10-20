@@ -13,11 +13,13 @@ O áudio continua sendo responsabilidade do RockMachinePlayer.
 """
 
 import json
+import os
 import threading
 import time
 import uuid
 from pathlib import Path
 
+from dotenv import load_dotenv
 import requests
 import uvicorn
 
@@ -50,8 +52,41 @@ PORTA = 8001
 PASTA_GRAVACOES = Path("gravacoes")
 PASTA_GRAVACOES.mkdir(exist_ok=True)
 
-# Backend público hospedado no Render
-URL_BACKEND_PUBLICO = "https://rock-machine.onrender.com"
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+
+# URLs dos backends (local para desenvolvimento/testes, público para produção)
+URL_BACKEND_PUBLICO = os.getenv(
+    "URL_BACKEND_PUBLICO",
+    "https://rock-machine.onrender.com"
+).rstrip("/")
+
+URL_BACKEND_LOCAL = os.getenv(
+    "URL_BACKEND_LOCAL",
+    "http://127.0.0.1:8000"
+).rstrip("/")
+
+
+def resolver_url_backend() -> str:
+    """
+    Retorna a URL do backend para envio da música:
+    1. Se URL_BACKEND estiver definido no .env, tem prioridade total.
+    2. Se o backend local (porta 8000) estiver respondendo, usa o local
+       (elimina a espera de 120s e timeouts do Render durante testes locais).
+    3. Caso contrário, envia para o backend público hospedado no Render.
+    """
+    url_env = os.getenv("URL_BACKEND")
+    if url_env:
+        return url_env.rstrip("/")
+
+    try:
+        r = requests.get(f"{URL_BACKEND_LOCAL}/health", timeout=1.0)
+        if r.status_code == 200:
+            return URL_BACKEND_LOCAL
+    except Exception:
+        pass
+
+    return URL_BACKEND_PUBLICO
 
 
 # =========================================================
@@ -473,13 +508,12 @@ def publicar_sessao(
 
 
     # -----------------------------------------------------
-    # Envia para o backend público
+    # Envia para o backend (local ou público)
     # -----------------------------------------------------
 
-    url = (
-        f"{URL_BACKEND_PUBLICO}"
-        "/musicas/upload"
-    )
+    backend_base = resolver_url_backend()
+    url = f"{backend_base}/musicas/upload"
+    print(f"[PUBLICAÇÃO] Enviando música para: {url}")
 
     try:
 
@@ -511,11 +545,11 @@ def publicar_sessao(
 
     except requests.exceptions.RequestException as erro:
 
+        print(f"[ERRO DE CONEXÃO] Falha ao enviar para {url}: {erro}")
         raise HTTPException(
             status_code=502,
             detail=(
-                "Não foi possível conectar "
-                "ao backend público: "
+                f"Não foi possível conectar ao backend ({backend_base}): "
                 f"{erro}"
             ),
         )

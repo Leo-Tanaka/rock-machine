@@ -9,15 +9,21 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 
+from fastapi.staticfiles import StaticFiles
+
 from src.dsp_engine import MotorDSP
 
 BASE_DIR = Path(__file__).resolve().parent
+IMAGES_DIR = BASE_DIR / "images"
 ASSETS_DIR = BASE_DIR / "assets"
 UPLOADS_DIR = ASSETS_DIR / "uploads"
 TEMP_DIR = BASE_DIR / "temp"
 PROCESSED_DIR = TEMP_DIR / "processed"
 
 app = FastAPI(title="Rock Machine DSP API", version="1.0.0")
+
+if IMAGES_DIR.exists():
+    app.mount("/images", StaticFiles(directory=IMAGES_DIR), name="images")
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,7 +51,10 @@ def root() -> FileResponse:
 
 
 @app.get("/favicon.ico", include_in_schema=False)
-def favicon() -> Response:
+def favicon():
+    fav = IMAGES_DIR / "logo-rock-machine.png"
+    if fav.exists():
+        return FileResponse(fav)
     return Response(status_code=204)
 
 

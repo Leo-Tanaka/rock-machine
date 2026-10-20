@@ -7,7 +7,7 @@
     <link
       rel="icon"
       type="image/png"
-      href="/images/logo-rock-machine.png?v=20260923"
+      href="/images/logo-rock-machine.png?v=20261019"
     />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,11 +51,14 @@
         class="w-full rounded-3xl border border-cyan-400/20 bg-slate-900/70 p-6 shadow-neon sm:p-10"
       >
         <div class="mb-4 flex items-center justify-between">
-          <p
-            class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300"
-          >
-            Máquina de Rock
-          </p>
+          <div class="flex items-center gap-2.5">
+            <img src="/images/logo-rock-machine.png?v=20261019" alt="Rock Machine" class="h-6 w-6 object-contain" />
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300"
+            >
+              Máquina de Rock
+            </p>
+          </div>
           <a
             href="/studio"
             class="text-xs font-semibold text-slate-400 hover:text-cyan-300 transition"
@@ -152,9 +155,11 @@
       // Serviço local que controla a máquina e a sessão.
       const API_LOCAL = "http://127.0.0.1:8001";
 
-      // Troque pela URL real do seu backend público no Render.
-      // Use "/" se a página da playlist for servida na raiz do backend.
-      const URL_PLAYLIST_PUBLICA = "https://rock-machine.onrender.com/playlist";
+      // URL da playlist: se estiver testando localmente, redireciona para a porta 8000; em produção, vai para o Render.
+      const URL_PLAYLIST_PUBLICA =
+        window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+          ? "http://127.0.0.1:8000/playlist"
+          : "https://rock-machine.onrender.com/playlist";
 
       function showStatus(message, type) {
         status.textContent = message;
