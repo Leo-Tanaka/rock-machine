@@ -49,6 +49,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 IMAGES_DIR = BASE_DIR / "images"
 
+
 # Configuração do Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -74,16 +75,6 @@ if IMAGES_DIR.exists():
         StaticFiles(directory=IMAGES_DIR),
         name="images"
     )
-
-
-@app.get("/health", include_in_schema=False)
-def health():
-    return {"status": "ok"}
-
-
-@app.get("/favicon.ico", include_in_schema=False)
-def favicon():
-    return FileResponse(IMAGES_DIR / "logo-rock-machine.png")
 
 
 @app.get("/")
@@ -127,7 +118,24 @@ def pagina_playlist():
 # Listar músicas
 @app.get("/musicas")
 def listar_musicas():
-    # Consulta diretamente o MongoDB Atlas (funciona tanto local quanto no Render)
+    # Quando estiver rodando localmente, consulta o Render.
+    if not ESTA_NO_RENDER:
+        try:
+            resposta = requests.get( 
+                f"{URL_BACKEND_PUBLICO}/musicas",
+                timeout=45
+            )
+            resposta.raise_for_status()
+            return resposta.json()
+
+        except requests.RequestException as erro:
+            print(f"Erro ao consultar o backend público: {erro}")
+            raise HTTPException(
+                status_code=502,
+                detail="Não foi possível consultar a playlist pública."
+            )
+
+    # Quando estiver no Render, consulta o MongoDB diretamente.
     try:
         musicas = list(
             musicas_collection.find().sort("data_criacao", -1)
@@ -140,20 +148,6 @@ def listar_musicas():
 
     except Exception as erro:
         print(f"Erro ao consultar o MongoDB: {erro}")
-
-        # Fallback opcional: se o acesso direto falhar e não estiver no Render, tenta consultar o Render
-        if not ESTA_NO_RENDER:
-            try:
-                print("Tentando fallback via backend público no Render...")
-                resposta = requests.get(
-                    f"{URL_BACKEND_PUBLICO}/musicas",
-                    timeout=10
-                )
-                resposta.raise_for_status()
-                return resposta.json()
-            except requests.RequestException as erro_render:
-                print(f"Fallback via backend público também falhou: {erro_render}")
-
         raise HTTPException(
             status_code=500,
             detail="Não foi possível carregar as músicas."

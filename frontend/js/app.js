@@ -3,29 +3,29 @@
     {
       id: "drums",
       label: "Bateria",
-      accent: "cyan",
-      color: "#06b6d4",
+      accent: "gold",
+      color: "#C0A878",
       shortName: "DRUMS",
     },
     {
       id: "bass",
       label: "Baixo",
-      accent: "emerald",
-      color: "#10b981",
+      accent: "blue",
+      color: "#607090",
       shortName: "BASS",
     },
     {
       id: "melody",
       label: "Melodia",
-      accent: "amber",
-      color: "#f59e0b",
+      accent: "gold",
+      color: "#C0A878",
       shortName: "LEAD",
     },
     {
       id: "voice",
       label: "Voz",
-      accent: "pink",
-      color: "#ec4899",
+      accent: "red",
+      color: "#803040",
       shortName: "VOX",
     },
   ];
@@ -402,11 +402,11 @@
     const percent = Math.round(track.userVolume * 100);
     track.volumeValue.textContent = `${percent}%`;
     track.muteButton.classList.toggle("border-white/10", !track.mute);
-    track.muteButton.classList.toggle("border-rose-400/50", track.mute);
-    track.muteButton.classList.toggle("text-rose-200", track.mute);
+    track.muteButton.classList.toggle("border-[var(--rm-red)]", track.mute);
+    track.muteButton.classList.toggle("text-[#e06070]", track.mute);
     track.soloButton.classList.toggle("border-white/10", !track.solo);
-    track.soloButton.classList.toggle("border-cyan-400/40", track.solo);
-    track.soloButton.classList.toggle("text-cyan-200", track.solo);
+    track.soloButton.classList.toggle("border-[var(--rm-gold)]", track.solo);
+    track.soloButton.classList.toggle("text-[var(--rm-gold)]", track.solo);
     updateTrackGain(track);
     updateWaveState(track);
   }
@@ -728,20 +728,20 @@
     const anySolo = Array.from(state.tracks.values()).some((track) => track.solo);
 
     if (state.isPlaying) {
-      els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.7)]";
+      els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-[var(--rm-gold)] shadow-[0_0_16px_rgba(192,168,120,0.7)]";
       els.sessionStatus.textContent = anySolo ? "Sessão tocando com solo ativo" : "Sessão tocando em sync";
       els.footerSession.textContent = "Mixagem em reprodução ao vivo";
       return;
     }
 
     if (anyLoaded) {
-      els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_16px_rgba(6,182,212,0.5)]";
+      els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-[var(--rm-blue)] shadow-[0_0_16px_rgba(96,112,144,0.6)]";
       els.sessionStatus.textContent = "Stems carregados e prontos";
       els.footerSession.textContent = "Arquivos carregados, aguardando play";
       return;
     }
 
-    els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-slate-500";
+    els.sessionLed.className = "h-2.5 w-2.5 rounded-full bg-[var(--rm-vinyl)]";
     els.sessionStatus.textContent = "Pronto para carregar stems";
     els.footerSession.textContent = "Nenhum áudio reproduzindo";
   }
@@ -751,11 +751,11 @@
     els.footerSession.textContent = message;
 
     const toneMap = {
-      ready: "bg-cyan-400 shadow-[0_0_16px_rgba(6,182,212,0.5)]",
-      loading: "bg-amber-400 shadow-[0_0_16px_rgba(245,158,11,0.5)]",
-      playing: "bg-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.7)]",
-      paused: "bg-rose-400 shadow-[0_0_16px_rgba(244,63,94,0.55)]",
-      error: "bg-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.75)]",
+      ready: "bg-[var(--rm-blue)] shadow-[0_0_16px_rgba(96,112,144,0.6)]",
+      loading: "bg-[var(--rm-gold)] shadow-[0_0_16px_rgba(192,168,120,0.5)]",
+      playing: "bg-[var(--rm-gold)] shadow-[0_0_16px_rgba(192,168,120,0.7)]",
+      paused: "bg-[var(--rm-red)] shadow-[0_0_16px_rgba(128,48,64,0.55)]",
+      error: "bg-[#a03848] shadow-[0_0_16px_rgba(160,56,72,0.75)]",
     };
 
     els.sessionLed.className = `h-2.5 w-2.5 rounded-full ${toneMap[tone] || toneMap.ready}`;

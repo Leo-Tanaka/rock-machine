@@ -5,10 +5,28 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Rock Machine</title>
+    <title>Máquina Local | Rock Machine</title>
     <link rel="icon" type="image/png" href="/images/logo-rock-machine.png?v=20261019" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
+      :root {
+        /* Cores principais */
+        --rm-black: #080808;
+        --rm-graphite: #171717;
+        --rm-blue: #607090;
+        --rm-red: #803040;
+        --rm-gold: #C0A878;
+        --rm-vinyl: #505050;
+        --rm-ivory: #E8E0D0;
+      }
+
       * {
         box-sizing: border-box;
         margin: 0;
@@ -19,14 +37,12 @@
         min-height: 100vh;
         background: radial-gradient(
           circle at top,
-          #202040 0%,
-          #0b0b12 45%,
-          #050507 100%
+          #221e1a 0%,
+          #141312 38%,
+          var(--rm-black) 100%
         );
-
-        color: #ffffff;
-        font-family: Arial, Helvetica, sans-serif;
-
+        color: var(--rm-ivory);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         display: flex;
         justify-content: center;
       }
@@ -47,21 +63,26 @@
       }
 
       .logo {
+        font-family: "Rajdhani", sans-serif;
         font-size: 14px;
-        letter-spacing: 5px;
-        font-weight: bold;
-        color: #00e5ff;
+        letter-spacing: 6px;
+        font-weight: 800;
+        color: var(--rm-gold);
+        text-shadow: 0 0 20px rgba(192, 168, 120, 0.35);
         margin-bottom: 25px;
       }
 
       h1 {
+        font-family: "Rajdhani", sans-serif;
         font-size: clamp(32px, 6vw, 56px);
+        font-weight: 800;
         letter-spacing: 2px;
+        color: var(--rm-ivory);
         margin-bottom: 12px;
       }
 
       .subtitle {
-        color: #9b9ba8;
+        color: #a09a8e;
         font-size: 16px;
       }
 
@@ -70,26 +91,33 @@
         ========================= */
 
       .status-card {
-        border: 1px solid #272737;
-        background: rgba(15, 15, 25, 0.8);
+        border: 1px solid var(--rm-vinyl);
+        background: rgba(23, 23, 23, 0.85);
         border-radius: 20px;
         padding: 24px;
         margin-bottom: 28px;
         text-align: center;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(12px);
       }
 
       .status-label {
-        color: #888897;
-        font-size: 12px;
-        letter-spacing: 2px;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--rm-gold);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2.5px;
         text-transform: uppercase;
         margin-bottom: 8px;
       }
 
       .timer {
-        font-size: 42px;
-        font-weight: bold;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 52px;
+        font-weight: 800;
+        color: var(--rm-ivory);
         font-variant-numeric: tabular-nums;
+        letter-spacing: 2px;
       }
 
       .recording-status {
@@ -97,17 +125,24 @@
         align-items: center;
         gap: 8px;
         margin-top: 10px;
-        color: #ff4fd8;
+        color: #e0556e;
         font-size: 14px;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 1.5px;
       }
 
       .recording-dot {
-        width: 9px;
-        height: 9px;
-        background: #ff4fd8;
+        width: 10px;
+        height: 10px;
+        background: var(--rm-red);
         border-radius: 50%;
-        box-shadow: 0 0 12px #ff4fd8;
+        box-shadow: 0 0 14px #e0556e;
+        animation: pulseRecord 1.4s ease-in-out infinite;
+      }
+
+      @keyframes pulseRecord {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
       }
 
       /* =========================
@@ -115,12 +150,16 @@
         ========================= */
 
       .section-title {
+        font-family: "Rajdhani", sans-serif;
         margin-bottom: 8px;
         font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: var(--rm-ivory);
       }
 
       .section-description {
-        color: #858594;
+        color: #9a9488;
         margin-bottom: 20px;
       }
 
@@ -131,11 +170,12 @@
       }
 
       .empty-state {
-        border: 1px dashed #343445;
+        border: 1px dashed var(--rm-vinyl);
         border-radius: 16px;
         padding: 40px 20px;
         text-align: center;
-        color: #777787;
+        color: #888278;
+        background: rgba(23, 23, 23, 0.4);
       }
 
       .layer {
@@ -143,19 +183,15 @@
         align-items: center;
         justify-content: space-between;
         gap: 20px;
-
         padding: 20px;
-
         border-radius: 18px;
-        border: 1px solid #292939;
-
+        border: 1px solid var(--rm-vinyl);
         background: linear-gradient(
           135deg,
-          rgba(25, 25, 40, 0.95),
-          rgba(12, 12, 20, 0.95)
+          rgba(30, 30, 30, 0.95),
+          rgba(18, 18, 18, 0.95)
         );
-
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       }
 
       .layer-info {
@@ -167,22 +203,21 @@
       .layer-icon {
         width: 48px;
         height: 48px;
-
         display: flex;
         align-items: center;
         justify-content: center;
-
         border-radius: 14px;
-
-        background: #171722;
-
+        background: var(--rm-graphite);
+        border: 1px solid var(--rm-vinyl);
         font-size: 22px;
       }
 
       .layer-type {
-        color: #00e5ff;
-        font-size: 11px;
-        letter-spacing: 1.5px;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--rm-gold);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
         text-transform: uppercase;
         margin-bottom: 5px;
       }
@@ -190,18 +225,21 @@
       .layer-name {
         font-size: 18px;
         font-weight: bold;
+        color: var(--rm-ivory);
         margin-bottom: 4px;
       }
 
       .layer-artist {
-        color: #858594;
+        color: #9a9488;
         font-size: 14px;
       }
 
       .active {
-        color: #42ff9e;
-        font-size: 12px;
-        font-weight: bold;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--rm-gold);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
         white-space: nowrap;
       }
 
@@ -218,8 +256,10 @@
       button {
         border: none;
         cursor: pointer;
-        font-size: 15px;
-        font-weight: bold;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
         border-radius: 14px;
         padding: 16px 22px;
         transition: 0.2s ease;
@@ -231,24 +271,31 @@
 
       .primary {
         flex: 1;
+        color: var(--rm-black);
+        background: linear-gradient(135deg, #d8c496 0%, var(--rm-gold) 50%, #aa9262 100%);
+        box-shadow: 0 0 25px rgba(192, 168, 120, 0.3);
+      }
 
-        color: #050507;
-
-        background: linear-gradient(90deg, #00e5ff, #ff4fd8);
-
-        box-shadow: 0 0 25px rgba(0, 229, 255, 0.15);
+      .primary:hover {
+        box-shadow: 0 0 35px rgba(192, 168, 120, 0.5);
       }
 
       .secondary {
-        background: #191923;
-        color: #aaaaba;
-        border: 1px solid #2d2d3d;
+        background: var(--rm-graphite);
+        color: var(--rm-ivory);
+        border: 1px solid var(--rm-vinyl);
+      }
+
+      .secondary:hover {
+        border-color: #a04050;
+        color: #f08090;
       }
 
       button:disabled {
-        opacity: 0.4;
+        opacity: 0.35;
         cursor: not-allowed;
         transform: none;
+        box-shadow: none;
       }
 
       /* =========================
@@ -258,20 +305,21 @@
       .simulation {
         margin-top: 50px;
         padding: 20px;
-
-        border: 1px dashed #303041;
+        border: 1px dashed var(--rm-vinyl);
         border-radius: 18px;
-
-        background: rgba(10, 10, 16, 0.6);
+        background: rgba(18, 18, 18, 0.7);
       }
 
       .simulation h3 {
-        color: #ff4fd8;
+        font-family: "Rajdhani", sans-serif;
+        color: var(--rm-gold);
+        font-size: 15px;
+        letter-spacing: 2px;
         margin-bottom: 8px;
       }
 
       .simulation p {
-        color: #777787;
+        color: #8c867a;
         font-size: 13px;
         margin-bottom: 18px;
       }
@@ -285,10 +333,15 @@
 
       .simulation button {
         padding: 10px 14px;
-        font-size: 12px;
-        background: #171722;
-        color: #ddd;
-        border: 1px solid #303041;
+        font-size: 13px;
+        background: var(--rm-graphite);
+        color: var(--rm-ivory);
+        border: 1px solid var(--rm-vinyl);
+      }
+
+      .simulation button:hover {
+        border-color: var(--rm-gold);
+        color: var(--rm-gold);
       }
 
       /* =========================
@@ -318,9 +371,6 @@
   <body>
     <main class="container">
       <header>
-        <div style="display: flex; justify-content: center; margin-bottom: 16px;">
-          <img src="/images/logomarca_RM1.png" alt="Rock Machine" style="height: 72px; width: 72px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(0, 229, 255, 0.45));" />
-        </div>
         <div class="logo">ROCK MACHINE</div>
 
         <h1>SUA COMPOSIÇÃO</h1>

@@ -18,17 +18,18 @@
               display: ["Rajdhani", "sans-serif"],
             },
             boxShadow: {
-              neon: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(6,182,212,0.22), 0 0 64px rgba(236,72,153,0.12)",
+              gold: "0 0 0 1px rgba(255,255,255,0.04), 0 0 24px rgba(192,168,120,0.2), 0 0 60px rgba(128,48,64,0.1)",
+              card: "0 10px 40px rgba(0,0,0,0.6)",
             },
             colors: {
-              rock: {
-                bg: "#0f172a",
-                panel: "#111827",
-                line: "#1f2937",
-                cyan: "#06b6d4",
-                emerald: "#10b981",
-                amber: "#f59e0b",
-                pink: "#ec4899",
+              rm: {
+                black: "#080808",
+                graphite: "#171717",
+                blue: "#607090",
+                red: "#803040",
+                gold: "#C0A878",
+                vinyl: "#505050",
+                ivory: "#E8E0D0",
               },
             },
           },
@@ -36,42 +37,54 @@
       };
     </script>
     <style>
+      :root {
+        --rm-black: #080808;
+        --rm-graphite: #171717;
+        --rm-blue: #607090;
+        --rm-red: #803040;
+        --rm-gold: #C0A878;
+        --rm-vinyl: #505050;
+        --rm-ivory: #E8E0D0;
+      }
+
       html,
       body {
         min-height: 100%;
         background:
-          radial-gradient(circle at top left, rgba(6, 182, 212, 0.12), transparent 28%),
-          radial-gradient(circle at top right, rgba(236, 72, 153, 0.12), transparent 24%),
-          linear-gradient(180deg, #0f172a 0%, #111827 55%, #0b1020 100%);
+          radial-gradient(circle at top left, rgba(192, 168, 120, 0.12), transparent 28%),
+          radial-gradient(circle at top right, rgba(128, 48, 64, 0.12), transparent 24%),
+          linear-gradient(180deg, #141210 0%, #111010 55%, var(--rm-black) 100%);
+        color: var(--rm-ivory);
       }
 
       .grain {
-        background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-image: linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
         background-size: 36px 36px;
       }
 
-      .neon-glow {
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 18px rgba(6, 182, 212, 0.14),
-          0 0 42px rgba(236, 72, 153, 0.1);
+      .gold-glow {
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 18px rgba(192, 168, 120, 0.14),
+          0 0 42px rgba(128, 48, 64, 0.1);
       }
 
       .track-card {
-        background: linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(15, 23, 42, 0.92));
+        background: linear-gradient(180deg, rgba(26, 24, 22, 0.95), rgba(16, 14, 12, 0.95));
+        border-color: var(--rm-vinyl);
       }
 
       .track-dropzone.is-dragover {
-        border-color: rgba(6, 182, 212, 0.95);
-        background: rgba(6, 182, 212, 0.1);
+        border-color: rgba(192, 168, 120, 0.95);
+        background: rgba(192, 168, 120, 0.1);
         transform: translateY(-1px);
       }
 
       .track-card.is-processing {
-        box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.16), 0 0 34px rgba(6, 182, 212, 0.12);
+        box-shadow: 0 0 0 1px rgba(192, 168, 120, 0.2), 0 0 34px rgba(192, 168, 120, 0.15);
       }
 
       .track-card.is-processing [data-track-state] {
-        color: #67e8f9;
+        color: var(--rm-gold);
       }
 
       .wave-bars {
@@ -147,42 +160,42 @@
     </style>
     <script defer src="app.js"></script>
   </head>
-  <body class="text-slate-100 antialiased font-sans">
+  <body class="antialiased font-sans">
     <div class="min-h-screen grain">
       <main class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 lg:px-8">
-        <section class="overflow-hidden rounded-3xl border border-white/10 bg-black/20 shadow-neon backdrop-blur-xl">
-          <div class="flex flex-col gap-6 border-b border-white/10 p-6 xl:flex-row xl:items-end xl:justify-between">
+        <section class="overflow-hidden rounded-3xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/40 shadow-gold backdrop-blur-xl">
+          <div class="flex flex-col gap-6 border-b border-[var(--rm-vinyl)]/60 p-6 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-3xl">
               <div class="mb-3 flex items-center gap-3">
-                <a href="/studio" title="Voltar ao Studio" class="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/40 bg-slate-900 shadow-[0_0_15px_rgba(6,182,212,0.25)] transition hover:scale-105">
+                <a href="/studio" title="Voltar ao Studio" class="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--rm-gold)]/50 bg-[var(--rm-graphite)] shadow-[0_0_15px_rgba(192,168,120,0.25)] transition hover:scale-105">
                   <img src="/images/logo-rock-machine.png?v=20261019" alt="Rock Machine" class="h-8 w-8 object-contain" />
                 </a>
-                <p class="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">
+                <p class="inline-flex rounded-full border border-[var(--rm-gold)]/40 bg-[var(--rm-gold)]/10 px-3 py-1 font-display text-xs font-bold uppercase tracking-[0.35em] text-[var(--rm-gold)]">
                   Web Audio // Live Remix Engine
                 </p>
               </div>
-              <h1 class="font-display text-4xl font-bold uppercase tracking-[0.18em] text-white sm:text-5xl lg:text-6xl">
-                Máquina de Rock <span class="text-cyan-300">//</span> Digital Jam Studio
+              <h1 class="font-display text-4xl font-bold uppercase tracking-[0.18em] text-[var(--rm-ivory)] sm:text-5xl lg:text-6xl">
+                Máquina de Rock <span class="text-[var(--rm-gold)]">//</span> Digital Jam Studio
               </h1>
-              <p class="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
+              <p class="mt-4 max-w-2xl text-sm leading-6 text-stone-300 sm:text-base">
                 Carregue até quatro stems, sincronize a sessão em tempo real, ajuste volume, mute e solo por trilha e exporte o remix final em WAV.
               </p>
             </div>
 
-            <div class="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 md:grid-cols-3 xl:min-w-[520px]">
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">BPM Global</span>
-                <input id="bpmGlobal" type="range" min="60" max="200" step="1" value="106" class="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-400" />
-                <div class="flex items-center justify-between text-xs text-slate-400">
+            <div class="grid gap-3 rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/80 p-4 md:grid-cols-3 xl:min-w-[520px]">
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <span class="font-display font-bold uppercase tracking-[0.25em] text-stone-400">BPM Global</span>
+                <input id="bpmGlobal" type="range" min="60" max="200" step="1" value="106" class="h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--rm-gold)]" style="background: var(--rm-vinyl)" />
+                <div class="flex items-center justify-between text-xs text-stone-400">
                   <span>60</span>
-                  <span id="bpmValue" class="font-semibold text-cyan-300">106 BPM</span>
+                  <span id="bpmValue" class="font-display font-bold text-[var(--rm-gold)]">106 BPM</span>
                   <span>200</span>
                 </div>
               </label>
 
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">Tom Global</span>
-                <select id="keyGlobal" class="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-cyan-400">
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <span class="font-display font-bold uppercase tracking-[0.25em] text-stone-400">Tom Global</span>
+                <select id="keyGlobal" class="rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 text-sm text-[var(--rm-ivory)] outline-none transition focus:border-[var(--rm-gold)]">
                   <option value="C">C</option>
                   <option value="C#">C# / Db</option>
                   <option value="D">D</option>
@@ -199,178 +212,178 @@
               </label>
 
               <div class="flex flex-col justify-end gap-2">
-                <span class="font-semibold uppercase tracking-[0.25em] text-slate-400">Estado da Sessão</span>
-                <div class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm">
-                  <span id="sessionLed" class="h-2.5 w-2.5 rounded-full bg-slate-500"></span>
-                  <span id="sessionStatus" class="font-semibold text-slate-200">Pronto para carregar stems</span>
+                <span class="font-display font-bold uppercase tracking-[0.25em] text-stone-400">Estado da Sessão</span>
+                <div class="inline-flex items-center gap-2 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 text-sm">
+                  <span id="sessionLed" class="h-2.5 w-2.5 rounded-full bg-[var(--rm-vinyl)]"></span>
+                  <span id="sessionStatus" class="font-display font-semibold text-[var(--rm-ivory)]">Pronto para carregar stems</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="grid gap-3 p-6 lg:grid-cols-4">
-            <button id="playSession" class="rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-cyan-200 transition hover:-translate-y-0.5 hover:bg-cyan-500/20 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]">
+            <button id="playSession" class="rounded-2xl border border-[var(--rm-gold)]/40 bg-[var(--rm-gold)]/10 px-5 py-4 font-display text-sm font-bold uppercase tracking-[0.25em] text-[var(--rm-gold)] transition hover:-translate-y-0.5 hover:bg-[var(--rm-gold)]/20 hover:shadow-[0_0_25px_rgba(192,168,120,0.3)]">
               Play Sessão
             </button>
-            <button id="pauseSession" class="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-500/20">
+            <button id="pauseSession" class="rounded-2xl border border-[var(--rm-blue)]/50 bg-[var(--rm-blue)]/10 px-5 py-4 font-display text-sm font-bold uppercase tracking-[0.25em] transition hover:-translate-y-0.5 hover:bg-[var(--rm-blue)]/20" style="color:var(--rm-blue)">
               Pause Sessão
             </button>
-            <button id="stopSession" class="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-bold uppercase tracking-[0.25em] text-rose-200 transition hover:-translate-y-0.5 hover:bg-rose-500/20">
+            <button id="stopSession" class="rounded-2xl border border-[var(--rm-red)]/50 bg-[var(--rm-red)]/10 px-5 py-4 font-display text-sm font-bold uppercase tracking-[0.25em] transition hover:-translate-y-0.5 hover:bg-[var(--rm-red)]/20" style="color:#e06070">
               Parar Tudo
             </button>
-            <button id="renderMix" class="rounded-2xl border border-emerald-400/40 bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-fuchsia-500/20 px-5 py-4 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:-translate-y-0.5 hover:shadow-[0_0_40px_rgba(16,185,129,0.22)]">
+            <button id="renderMix" class="rounded-2xl border border-[var(--rm-gold)]/50 bg-gradient-to-r from-[var(--rm-black)] via-[var(--rm-graphite)] to-[var(--rm-black)] px-5 py-4 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:-translate-y-0.5 hover:border-[var(--rm-gold)] hover:shadow-[0_0_30px_rgba(192,168,120,0.25)]">
               Renderizar e Baixar Remix (.WAV)
             </button>
           </div>
         </section>
 
         <section class="grid gap-5 xl:grid-cols-2">
-          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="drums">
+          <article class="track-card track-panel rounded-3xl border border-[var(--rm-vinyl)] p-5 shadow-gold" data-track="drums">
             <div class="mb-4 flex items-center justify-between gap-4">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-300">Track 01 // Drums</p>
-                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Bateria</h2>
+                <p class="font-display text-xs font-bold uppercase tracking-[0.35em] text-[var(--rm-gold)]">Track 01 // Drums</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-[var(--rm-ivory)]">Bateria</h2>
               </div>
-              <div class="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-200">Cyan Glow</div>
+              <div class="rounded-full border border-[var(--rm-gold)]/40 bg-[var(--rm-gold)]/10 px-3 py-1 font-display text-xs font-bold text-[var(--rm-gold)]">Gold</div>
             </div>
-            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-cyan-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-[var(--rm-gold)]/30 bg-[var(--rm-black)]/60 p-4 transition" data-dropzone>
               <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
-                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                  <p class="text-sm font-semibold text-[var(--rm-ivory)]">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-stone-400">Aceita apenas .mp3 e .wav</p>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+                <div class="rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-2 text-xs text-stone-300" data-file-label>Nenhum arquivo selecionado</div>
               </div>
             </div>
             <div class="space-y-4">
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
-                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-400" />
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--rm-gold)]" style="background:var(--rm-vinyl)" />
               </label>
               <div class="flex gap-3">
-                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Mute</button>
-                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-cyan-400/40 hover:text-cyan-200">Solo</button>
-                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
+                <button type="button" data-mute class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:text-[var(--rm-gold)]">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:text-[var(--rm-gold)]">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-[var(--rm-red)]/40 bg-[var(--rm-red)]/10 px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] transition hover:border-[var(--rm-red)]/70 hover:bg-[var(--rm-red)]/20" style="color:#e06070">Limpar</button>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+              <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-500">
                   <span>Waveform</span>
-                  <span class="text-cyan-300" data-track-state>Idle</span>
+                  <span class="text-[var(--rm-gold)]" data-track-state>Idle</span>
                 </div>
                 <div class="wave-bars" data-waveform></div>
               </div>
             </div>
           </article>
 
-          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="bass">
+          <article class="track-card track-panel rounded-3xl border border-[var(--rm-vinyl)] p-5 shadow-gold" data-track="bass">
             <div class="mb-4 flex items-center justify-between gap-4">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">Track 02 // Bass</p>
-                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Baixo</h2>
+                <p class="font-display text-xs font-bold uppercase tracking-[0.35em]" style="color:var(--rm-blue)">Track 02 // Bass</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-[var(--rm-ivory)]">Baixo</h2>
               </div>
-              <div class="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200">Emerald Glow</div>
+              <div class="rounded-full border border-[var(--rm-blue)]/40 bg-[var(--rm-blue)]/10 px-3 py-1 font-display text-xs font-bold" style="color:var(--rm-blue)">Groove</div>
             </div>
-            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-emerald-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-[var(--rm-blue)]/30 bg-[var(--rm-black)]/60 p-4 transition" data-dropzone>
               <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
-                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                  <p class="text-sm font-semibold text-[var(--rm-ivory)]">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-stone-400">Aceita apenas .mp3 e .wav</p>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+                <div class="rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-2 text-xs text-stone-300" data-file-label>Nenhum arquivo selecionado</div>
               </div>
             </div>
             <div class="space-y-4">
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
-                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-400" />
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full" style="background:var(--rm-vinyl);accent-color:var(--rm-blue)" />
               </label>
               <div class="flex gap-3">
-                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Mute</button>
-                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-emerald-400/40 hover:text-emerald-200">Solo</button>
-                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
+                <button type="button" data-mute class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-blue)]/60" style="--hover-color:var(--rm-blue)">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-[var(--rm-red)]/40 bg-[var(--rm-red)]/10 px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] transition" style="color:#e06070">Limpar</button>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+              <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-500">
                   <span>Waveform</span>
-                  <span class="text-emerald-300" data-track-state>Idle</span>
+                  <span style="color:var(--rm-blue)" data-track-state>Idle</span>
                 </div>
                 <div class="wave-bars" data-waveform></div>
               </div>
             </div>
           </article>
 
-          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="melody">
+          <article class="track-card track-panel rounded-3xl border border-[var(--rm-vinyl)] p-5 shadow-gold" data-track="melody">
             <div class="mb-4 flex items-center justify-between gap-4">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300">Track 03 // Melody</p>
-                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Melodia</h2>
+                <p class="font-display text-xs font-bold uppercase tracking-[0.35em] text-[var(--rm-gold)]">Track 03 // Melody</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-[var(--rm-ivory)]">Melodia</h2>
               </div>
-              <div class="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-200">Amber Glow</div>
+              <div class="rounded-full border border-[var(--rm-gold)]/40 bg-[var(--rm-gold)]/10 px-3 py-1 font-display text-xs font-bold text-[var(--rm-gold)]">Melody</div>
             </div>
-            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-amber-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-[var(--rm-gold)]/30 bg-[var(--rm-black)]/60 p-4 transition" data-dropzone>
               <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
-                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                  <p class="text-sm font-semibold text-[var(--rm-ivory)]">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-stone-400">Aceita apenas .mp3 e .wav</p>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+                <div class="rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-2 text-xs text-stone-300" data-file-label>Nenhum arquivo selecionado</div>
               </div>
             </div>
             <div class="space-y-4">
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
-                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-amber-400" />
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full accent-[var(--rm-gold)]" style="background:var(--rm-vinyl)" />
               </label>
               <div class="flex gap-3">
-                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Mute</button>
-                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-amber-400/40 hover:text-amber-200">Solo</button>
-                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
+                <button type="button" data-mute class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:text-[var(--rm-gold)]">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:text-[var(--rm-gold)]">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-[var(--rm-red)]/40 bg-[var(--rm-red)]/10 px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] transition" style="color:#e06070">Limpar</button>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+              <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-500">
                   <span>Waveform</span>
-                  <span class="text-amber-300" data-track-state>Idle</span>
+                  <span class="text-[var(--rm-gold)]" data-track-state>Idle</span>
                 </div>
                 <div class="wave-bars" data-waveform></div>
               </div>
             </div>
           </article>
 
-          <article class="track-card track-panel rounded-3xl border border-white/10 p-5 shadow-neon" data-track="voice">
+          <article class="track-card track-panel rounded-3xl border border-[var(--rm-vinyl)] p-5 shadow-gold" data-track="voice">
             <div class="mb-4 flex items-center justify-between gap-4">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-pink-300">Track 04 // Voice</p>
-                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-white">Voz</h2>
+                <p class="font-display text-xs font-bold uppercase tracking-[0.35em]" style="color:var(--rm-red);filter:brightness(1.6)">Track 04 // Voice</p>
+                <h2 class="mt-1 font-display text-2xl font-bold uppercase tracking-[0.15em] text-[var(--rm-ivory)]">Voz</h2>
               </div>
-              <div class="rounded-full border border-pink-400/30 bg-pink-400/10 px-3 py-1 text-xs font-semibold text-pink-200">Pink Glow</div>
+              <div class="rounded-full border border-[var(--rm-red)]/50 bg-[var(--rm-red)]/10 px-3 py-1 font-display text-xs font-bold" style="color:#e06070">Vocal</div>
             </div>
-            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-pink-400/25 bg-slate-950/55 p-4 transition" data-dropzone>
+            <div class="track-dropzone pulse-ring mb-4 cursor-pointer rounded-2xl border border-dashed border-[var(--rm-red)]/30 bg-[var(--rm-black)]/60 p-4 transition" data-dropzone>
               <input type="file" class="hidden track-input" accept=".mp3,.wav,audio/mpeg,audio/wav" />
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p class="text-sm font-semibold text-slate-100">Arraste e solte ou clique para carregar</p>
-                  <p class="text-xs text-slate-400">Aceita apenas .mp3 e .wav</p>
+                  <p class="text-sm font-semibold text-[var(--rm-ivory)]">Arraste e solte ou clique para carregar</p>
+                  <p class="text-xs text-stone-400">Aceita apenas .mp3 e .wav</p>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300" data-file-label>Nenhum arquivo selecionado</div>
+                <div class="rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-2 text-xs text-stone-300" data-file-label>Nenhum arquivo selecionado</div>
               </div>
             </div>
             <div class="space-y-4">
-              <label class="flex flex-col gap-2 text-sm text-slate-300">
-                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-400"><span>Volume</span><span data-volume-value>100%</span></div>
-                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-pink-400" />
+              <label class="flex flex-col gap-2 text-sm text-stone-300">
+                <div class="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-400"><span>Volume</span><span data-volume-value>100%</span></div>
+                <input type="range" min="0" max="1" step="0.01" value="1" class="track-volume h-2 w-full cursor-pointer appearance-none rounded-full" style="background:var(--rm-vinyl);accent-color:#c05060" />
               </label>
               <div class="flex gap-3">
-                <button type="button" data-mute class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Mute</button>
-                <button type="button" data-solo class="flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-200 transition hover:border-pink-400/40 hover:text-pink-200">Solo</button>
-                <button type="button" data-clear class="flex-1 rounded-xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-rose-200 transition hover:border-rose-400/40 hover:bg-rose-500/20">Limpar</button>
+                <button type="button" data-mute class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition hover:border-[var(--rm-red)]/60" style="--hover:#e06070">Mute</button>
+                <button type="button" data-solo class="flex-1 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] text-[var(--rm-ivory)] transition">Solo</button>
+                <button type="button" data-clear class="flex-1 rounded-xl border border-[var(--rm-red)]/40 bg-[var(--rm-red)]/10 px-4 py-3 font-display text-sm font-bold uppercase tracking-[0.2em] transition" style="color:#e06070">Limpar</button>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-slate-500">
+              <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/70 p-3">
+                <div class="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-stone-500">
                   <span>Waveform</span>
-                  <span class="text-pink-300" data-track-state>Idle</span>
+                  <span style="color:#c05060" data-track-state>Idle</span>
                 </div>
                 <div class="wave-bars" data-waveform></div>
               </div>
@@ -378,19 +391,19 @@
           </article>
         </section>
 
-        <section class="rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-sm text-slate-300">
+        <section class="rounded-3xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/60 p-5 text-sm text-stone-300">
           <div class="grid gap-4 md:grid-cols-3">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Sessão</p>
-              <p id="footerSession" class="mt-2 text-base font-semibold text-slate-100">Nenhum áudio reproduzindo</p>
+              <p class="font-display text-xs font-bold uppercase tracking-[0.3em] text-stone-500">Sessão</p>
+              <p id="footerSession" class="mt-2 text-base font-semibold text-[var(--rm-ivory)]">Nenhum áudio reproduzindo</p>
             </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Dica</p>
-              <p class="mt-2 text-slate-300">Use stems alinhados para loops perfeitos. O export renderiza o mix combinado em WAV.</p>
+              <p class="font-display text-xs font-bold uppercase tracking-[0.3em] text-stone-500">Dica</p>
+              <p class="mt-2 text-stone-300">Use stems alinhados para loops perfeitos. O export renderiza o mix combinado em WAV.</p>
             </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Compatibilidade</p>
-              <p class="mt-2 text-slate-300">Web Audio API nativa, pronta para acoplar camadas futuras de DSP e time-stretch.</p>
+              <p class="font-display text-xs font-bold uppercase tracking-[0.3em] text-stone-500">Compatibilidade</p>
+              <p class="mt-2 text-stone-300">Web Audio API nativa, pronta para acoplar camadas futuras de DSP e time-stretch.</p>
             </div>
           </div>
         </section>

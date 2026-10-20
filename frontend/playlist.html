@@ -26,19 +26,21 @@
             sans: ["Inter", "sans-serif"],
             display: ["Rajdhani", "sans-serif"],
           },
-
           colors: {
-            rock: {
-              cyan: "#06b6d4",
-              purple: "#8b5cf6",
-              pink: "#ec4899",
-              green: "#10b981",
+            rm: {
+              black: "#080808",
+              graphite: "#171717",
+              blue: "#607090",
+              red: "#803040",
+              gold: "#C0A878",
+              vinyl: "#505050",
+              ivory: "#E8E0D0",
             },
           },
-
           boxShadow: {
-            neon:
-              "0 0 30px rgba(6,182,212,0.15), 0 0 80px rgba(139,92,246,0.08)",
+            gold: "0 0 30px rgba(192,168,120,0.22), 0 0 60px rgba(128,48,64,0.12)",
+            goldGlow: "0 0 35px rgba(192,168,120,0.35)",
+            card: "0 15px 40px rgba(0,0,0,0.5)",
           },
         },
       },
@@ -46,18 +48,30 @@
   </script>
 
   <style>
+    :root {
+      /* Cores principais */
+      --rm-black: #080808;
+      --rm-graphite: #171717;
+      --rm-blue: #607090;
+      --rm-red: #803040;
+      --rm-gold: #C0A878;
+      --rm-vinyl: #505050;
+      --rm-ivory: #E8E0D0;
+    }
+
     body {
       background:
-        radial-gradient(circle at 10% 10%, rgba(6, 182, 212, 0.12), transparent 30%),
-        radial-gradient(circle at 90% 20%, rgba(139, 92, 246, 0.12), transparent 30%),
-        radial-gradient(circle at 50% 100%, rgba(236, 72, 153, 0.08), transparent 35%),
-        #020617;
+        radial-gradient(circle at 10% 10%, rgba(192, 168, 120, 0.12), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(96, 112, 144, 0.14), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(128, 48, 64, 0.1), transparent 35%),
+        var(--rm-black);
+      color: var(--rm-ivory);
     }
 
     .grid-bg {
       background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
       background-size: 40px 40px;
     }
 
@@ -71,21 +85,21 @@
 
     .music-card:hover {
       transform: translateY(-3px);
-      border-color: rgba(6, 182, 212, 0.35);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+      border-color: rgba(192, 168, 120, 0.5);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
     }
 
     .music-card.playing {
-      border-color: rgba(6, 182, 212, 0.55);
-      background: rgba(6, 182, 212, 0.07);
-      box-shadow: 0 0 35px rgba(6, 182, 212, 0.12);
+      border-color: rgba(192, 168, 120, 0.8);
+      background: rgba(192, 168, 120, 0.08);
+      box-shadow: 0 0 35px rgba(192, 168, 120, 0.2);
     }
 
     .equalizer span {
       display: block;
       width: 3px;
       border-radius: 999px;
-      background: #22d3ee;
+      background: var(--rm-gold);
       animation: equalizer 0.8s ease-in-out infinite alternate;
     }
 
@@ -101,7 +115,6 @@
       from {
         height: 5px;
       }
-
       to {
         height: 18px;
       }
@@ -115,7 +128,6 @@
       0%, 100% {
         transform: translateY(0);
       }
-
       50% {
         transform: translateY(-8px);
       }
@@ -123,17 +135,17 @@
   </style>
 </head>
 
-<body class="min-h-screen text-slate-100 antialiased">
+<body class="min-h-screen antialiased">
 
   <div class="grid-bg fixed inset-0 -z-10"></div>
 
   <main class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
 
     <!-- HEADER -->
-    <header class="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/70 p-6 shadow-neon backdrop-blur-xl sm:p-10">
+    <header class="relative overflow-hidden rounded-3xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)]/90 p-6 shadow-card backdrop-blur-xl sm:p-10">
 
-      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl"></div>
-      <div class="absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl"></div>
+      <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[var(--rm-gold)]/10 blur-3xl"></div>
+      <div class="absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-[var(--rm-blue)]/10 blur-3xl"></div>
 
       <div class="relative">
 
@@ -143,30 +155,30 @@
 
             <div class="mb-4 flex items-center gap-3">
 
-              <div class="float flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/30 bg-slate-900/80 p-1.5 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+              <div class="float flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--rm-gold)]/40 bg-[var(--rm-graphite)] p-1.5 shadow-[0_0_15px_rgba(192,168,120,0.3)]">
                 <img src="/images/logo-rock-machine.png?v=20261019" alt="Rock Machine" class="h-full w-full object-contain" />
               </div>
 
               <div>
-                <p class="font-display text-sm font-bold uppercase tracking-[0.3em] text-cyan-300">
+                <p class="font-display text-sm font-bold uppercase tracking-[0.3em] text-[var(--rm-gold)]">
                   Rock Machine
                 </p>
 
-                <p class="text-xs text-slate-500">
+                <p class="text-xs text-stone-500">
                   Música criada por pessoas
                 </p>
               </div>
 
             </div>
 
-            <h1 class="font-display text-5xl font-bold tracking-tight text-white sm:text-6xl">
+            <h1 class="font-display text-5xl font-bold tracking-tight text-[var(--rm-ivory)] sm:text-6xl">
               Playlist
-              <span class="bg-gradient-to-r from-cyan-300 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span class="bg-gradient-to-r from-[#d8c496] via-[var(--rm-gold)] to-[#c09060] bg-clip-text text-transparent">
                 pública
               </span>
             </h1>
 
-            <p class="mt-4 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
+            <p class="mt-4 max-w-xl text-base leading-7 text-stone-400 sm:text-lg">
               Um espaço para ouvir, descobrir e compartilhar as músicas
               criadas através da Rock Machine.
             </p>
@@ -177,7 +189,7 @@
 
             <a
               href="/studio"
-              class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/40 hover:bg-slate-800 hover:text-white"
+              class="inline-flex items-center gap-2 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-5 py-3 text-sm font-semibold text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:bg-[var(--rm-graphite)] hover:text-[var(--rm-gold)]"
             >
               <span>←</span>
               Início / Studio
@@ -185,7 +197,7 @@
 
             <a
               href="/publicar"
-              class="inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 hover:scale-105"
+              class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#d8c496] via-[var(--rm-gold)] to-[#a89060] px-5 py-3 font-display text-sm font-bold uppercase tracking-wide text-[var(--rm-black)] transition hover:scale-105 hover:shadow-[0_0_20px_rgba(192,168,120,0.4)]"
             >
               <span>＋</span>
               Publicar música
@@ -194,7 +206,7 @@
             <button
               id="shareButton"
               type="button"
-              class="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-400/40 hover:bg-slate-800"
+              class="inline-flex items-center gap-2 rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)] px-5 py-3 text-sm font-semibold text-[var(--rm-ivory)] transition hover:border-[var(--rm-gold)]/60 hover:bg-[var(--rm-graphite)]"
             >
               <span>↗</span>
               Compartilhar
@@ -208,33 +220,33 @@
 
         <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
 
-          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">
               Músicas
             </p>
 
-            <p id="musicCount" class="mt-1 font-display text-3xl font-bold text-cyan-300">
+            <p id="musicCount" class="mt-1 font-display text-3xl font-bold text-[var(--rm-gold)]">
               —
             </p>
           </div>
 
-          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">
               Playlist
             </p>
 
-            <p class="mt-1 font-display text-3xl font-bold text-purple-300">
+            <p class="mt-1 font-display text-3xl font-bold text-[var(--rm-gold)]" style="color:var(--rm-gold)">
               COLAB
             </p>
           </div>
 
-          <div class="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">
+          <div class="rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)]/50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">
               Status
             </p>
 
-            <p class="mt-1 flex items-center gap-2 font-display text-3xl font-bold text-emerald-300">
-              <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400"></span>
+            <p class="mt-1 flex items-center gap-2 font-display text-3xl font-bold text-[var(--rm-blue)]">
+              <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--rm-blue)]"></span>
               ONLINE
             </p>
           </div>
@@ -252,16 +264,16 @@
       <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 
         <div>
-          <p class="font-display text-xl font-bold uppercase tracking-wider text-white">
+          <p class="font-display text-xl font-bold uppercase tracking-wider text-[var(--rm-ivory)]">
             Faixas publicadas
           </p>
 
-          <p id="playlistDescription" class="mt-1 text-sm text-slate-500">
+          <p id="playlistDescription" class="mt-1 text-sm text-stone-500">
             Carregando músicas...
           </p>
         </div>
 
-        <div class="text-xs text-slate-600">
+        <div class="text-xs text-stone-600">
           Toque em uma faixa para ouvir
         </div>
 
@@ -279,16 +291,16 @@
 
     <!-- FOOTER -->
 
-    <footer class="mt-12 border-t border-slate-800 pt-6 text-center">
+    <footer class="mt-12 border-t border-[var(--rm-vinyl)] pt-6 text-center">
 
-      <p class="text-sm text-slate-500">
+      <p class="text-sm text-stone-500">
         Feito com 🎵 pela comunidade
-        <span class="font-semibold text-cyan-400">
+        <span class="font-display font-bold text-[var(--rm-gold)]">
           Rock Machine
         </span>
       </p>
 
-      <p class="mt-1 text-xs text-slate-700">
+      <p class="mt-1 text-xs text-stone-700">
         Crie. Experimente. Compartilhe.
       </p>
 
@@ -337,27 +349,19 @@
 
       if (isPlaying) {
 
-        button.classList.remove(
-          "bg-slate-800",
-          "text-cyan-200"
-        );
-
-        button.classList.add(
-          "bg-cyan-400",
-          "text-slate-950"
-        );
+        button.classList.remove("rm-btn-idle");
+        button.classList.add("rm-btn-playing");
+        button.style.background = "linear-gradient(135deg, #d8c496, #C0A878, #a89060)";
+        button.style.color = "#080808";
+        button.style.boxShadow = "0 0 20px rgba(192,168,120,0.4)";
 
       } else {
 
-        button.classList.remove(
-          "bg-cyan-400",
-          "text-slate-950"
-        );
-
-        button.classList.add(
-          "bg-slate-800",
-          "text-cyan-200"
-        );
+        button.classList.remove("rm-btn-playing");
+        button.classList.add("rm-btn-idle");
+        button.style.background = "#171717";
+        button.style.color = "#C0A878";
+        button.style.boxShadow = "";
 
       }
 
@@ -369,7 +373,7 @@
       const item = document.createElement("article");
 
       item.className =
-        "music-card group flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:p-5";
+        "music-card group flex flex-col gap-4 rounded-2xl border border-[var(--rm-vinyl)] bg-[var(--rm-graphite)]/90 p-4 backdrop-blur-xl sm:flex-row sm:items-center sm:p-5";
 
 
       // Número
@@ -377,7 +381,7 @@
       const position = document.createElement("div");
 
       position.className =
-        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950 font-display text-lg font-bold text-cyan-300";
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--rm-black)] font-display text-lg font-bold"; position.style.color = "var(--rm-red)";
 
       position.textContent =
         String(index + 1).padStart(2, "0");
@@ -388,7 +392,7 @@
       const icon = document.createElement("div");
 
       icon.className =
-        "hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-purple-400/20 bg-purple-400/10 text-xl sm:flex";
+        "hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--rm-vinyl)] bg-[var(--rm-black)] text-xl sm:flex";
 
       icon.textContent = "♫";
 
@@ -404,7 +408,7 @@
       const title = document.createElement("h2");
 
       title.className =
-        "truncate text-lg font-bold text-white";
+        "truncate text-lg font-bold"; title.style.color = "var(--rm-ivory)";
 
       title.textContent =
         musica.nome || "Sem título";
@@ -413,7 +417,7 @@
       const author = document.createElement("p");
 
       author.className =
-        "mt-1 truncate text-sm text-slate-400";
+        "mt-1 truncate text-sm text-stone-400";
 
       author.textContent =
         musica.autor || "Autor desconhecido";
@@ -422,7 +426,7 @@
       const date = document.createElement("p");
 
       date.className =
-        "mt-2 text-xs text-slate-600";
+        "mt-2 text-xs text-stone-600";
 
       date.textContent =
         `Publicada em ${formatDate(musica.data_criacao)}`;
@@ -457,8 +461,7 @@
 
       button.type = "button";
 
-      button.className =
-        "rounded-xl bg-slate-800 px-5 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-cyan-300";
+      button.className = "rounded-xl px-5 py-3 font-display text-sm font-bold uppercase tracking-wide transition focus:outline-none focus:ring-2 rm-btn-idle"; button.style.background = "#171717"; button.style.color = "#C0A878"; button.style.border = "1px solid #505050";
 
       button.textContent = "▶ Ouvir";
 
@@ -667,14 +670,14 @@
               A playlist está esperando por você
             </h2>
 
-            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+            <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--rm-ivory)]/60">
               Ainda não existem músicas publicadas.
               Crie sua primeira faixa e coloque seu som para tocar!
             </p>
 
             <a
               href="/publicar"
-              class="mt-6 inline-flex rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-cyan-300"
+              class="mt-6 inline-flex rounded-xl bg-[var(--rm-gold)] px-5 py-3 text-sm font-bold text-[var(--rm-black)] hover:brightness-110 transition shadow-lg shadow-[var(--rm-gold)]/20"
             >
               Criar primeira música
             </a>
