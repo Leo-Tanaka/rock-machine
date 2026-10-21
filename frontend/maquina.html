@@ -344,6 +344,45 @@
         color: var(--rm-gold);
       }
 
+      /* Badge de Hardware */
+      .hw-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 5px 12px;
+        border-radius: 9999px;
+      }
+
+      .hw-online {
+        background: rgba(192, 168, 120, 0.15);
+        border: 1px solid var(--rm-gold);
+        color: var(--rm-gold);
+        box-shadow: 0 0 12px rgba(192, 168, 120, 0.25);
+      }
+
+      .hw-offline {
+        background: rgba(80, 80, 80, 0.25);
+        border: 1px solid var(--rm-vinyl);
+        color: #b0a898;
+      }
+
+      .instrument-title {
+        font-family: "Rajdhani", sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
       /* =========================
            RESPONSIVO
         ========================= */
@@ -439,32 +478,53 @@
         </button>
       </div>
 
-      <!-- SIMULAÇÃO -->
+      <!-- SIMULAÇÃO E CONTROLES MANUAIS -->
 
       <section class="simulation">
-        <h3>MODO DE DESENVOLVIMENTO</h3>
-
-        <p>
-          Estes controles simulam as tags RFID enquanto o hardware não está
-          disponível.
-        </p>
-
-        <div class="simulation-row">
-          <button onclick="simularTag('F9376A48', 1)">🎤 Billie Jean</button>
-
-          <button onclick="simularTag('73660EF7', 0)">
-            🥁 Smells Like Teen Spirit
-          </button>
-
-          <button onclick="simularTag('21615573', 2)">🎸 Payphone</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <h3>CONTROLES MANUAIS & RFID HÍBRIDO</h3>
+          <span id="hardwareStatus" class="hw-badge hw-offline">● MODO MANUAL (RFID OFFLINE)</span>
         </div>
 
-        <div class="simulation-row">
-          <button onclick="simularRemover(0)">Remover bateria</button>
+        <p>
+          Aproxime as fichas RFID físicas dos leitores da máquina ou selecione e teste as faixas manualmente abaixo:
+        </p>
 
-          <button onclick="simularRemover(1)">Remover vocal</button>
+        <!-- Slot 0: Bateria -->
+        <div style="margin-bottom: 16px;">
+          <div class="instrument-title" style="color: var(--rm-gold);">
+            🥁 Bateria (Slot 0 RFID)
+          </div>
+          <div class="simulation-row">
+            <button type="button" onclick="simularTag('73660EF7', 0)">🥁 Smells Like Teen Spirit</button>
+            <button type="button" onclick="simularTag('41CA4B73', 0)">🥁 Tempos Modernos</button>
+            <button type="button" onclick="simularRemover(0)" style="border-color: #803040; color: #f08090;">✕ Tirar Bateria</button>
+          </div>
+        </div>
 
-          <button onclick="simularRemover(2)">Remover instrumento</button>
+        <!-- Slot 1: Vocal -->
+        <div style="margin-bottom: 16px;">
+          <div class="instrument-title" style="color: #f08090;">
+            🎤 Vocal (Slot 1 RFID)
+          </div>
+          <div class="simulation-row">
+            <button type="button" onclick="simularTag('F9376A48', 1)">🎤 Billie Jean</button>
+            <button type="button" onclick="simularTag('1AD3781A', 1)">🎤 Smells Like Teen Spirit</button>
+            <button type="button" onclick="simularTag('2A634C73', 1)">🎤 Tempos Modernos</button>
+            <button type="button" onclick="simularRemover(1)" style="border-color: #803040; color: #f08090;">✕ Tirar Vocal</button>
+          </div>
+        </div>
+
+        <!-- Slot 2: Outros / Instrumentos -->
+        <div>
+          <div class="instrument-title" style="color: var(--rm-blue);">
+            🎸 Instrumentos & Harmonia (Slot 2 RFID)
+          </div>
+          <div class="simulation-row">
+            <button type="button" onclick="simularTag('21615573', 2)">🎸 Payphone</button>
+            <button type="button" onclick="simularTag('86AF4183', 2)">🎸 In the End</button>
+            <button type="button" onclick="simularRemover(2)" style="border-color: #803040; color: #f08090;">✕ Tirar Instrumento</button>
+          </div>
         </div>
       </section>
     </main>
@@ -549,6 +609,18 @@
 
         document.getElementById("finalizarBtn").disabled =
           !estado.gravando || estado.camadas.length === 0;
+
+        // Status do Hardware
+        const hwStatus = document.getElementById("hardwareStatus");
+        if (hwStatus) {
+          if (estado.arduino_conectado) {
+            hwStatus.textContent = "● HARDWARE RFID CONECTADO";
+            hwStatus.className = "hw-badge hw-online";
+          } else {
+            hwStatus.textContent = "● MODO MANUAL (RFID OFFLINE)";
+            hwStatus.className = "hw-badge hw-offline";
+          }
+        }
 
         // Camadas
 
@@ -782,6 +854,7 @@
       // INICIALIZAÇÃO
       // =================================================
 
+      iniciarAtualizacao();
       atualizarStatus();
     </script>
   </body>

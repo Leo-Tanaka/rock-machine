@@ -1,41 +1,37 @@
 """
-RockMachine - Gravar uma sessão
+Rock Machine - Servidor da Máquina Física & Sessão de Gravação
 ====================================================================
-Roda igual o ponte_serial.py (escuta o Arduino e toca o que as fichas
-determinam), grava por uma DURAÇÃO FIXA (em compassos) e disponibiliza
-uma interface web local para controlar a máquina.
+Controla a aplicação física (Arduino + Leitores RFID MFRC522)
+com suporte híbrido a seleção manual de faixas via interface web.
 
-Nesta etapa:
-    - FastAPI roda dentro deste mesmo arquivo
-    - /maquina abre o maquina.html
-    - A gravação continua sendo controlada pelo programa
-    - A publicação pelo terminal foi removida
-
-Teclas:
-    r   -> começa a gravar
-    s   -> cancela a gravação atual
-    ESC -> sai do programa
-
-Interface web:
-    http://127.0.0.1:8001/maquina
-
-Requisitos:
-    pip install pyserial sounddevice soundfile numpy requests fastapi uvicorn
-
-IMPORTANTE:
-    usa 'msvcrt' (exclusivo do Windows).
+Recursos:
+- Escuta a porta serial do Arduino em background (tolerante a falhas / reconexão);
+- Atualiza o estado da sessão (camadas, tempo, gravação) em tempo real;
+- Reproduz os stems de áudio ao vivo sincronizados via RockMachinePlayer;
+- Interface web local (http://127.0.0.1:8001/maquina);
+- Renderiza o áudio final em WAV ao finalizar;
+- Envia diretamente para o backend público/local (/publicar) para alimentar a playlist.
 """
 
+from __future__ import annotations
+
+import json
+import os
 import sys
-import time
 import threading
+import time
+import uuid
 from pathlib import Path
 
+from dotenv import load_dotenv
+import requests
 import serial
 import uvicorn
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from rockmachine_motor import (
     RockMachinePlayer,
@@ -47,41 +43,75 @@ from rockmachine_motor import (
 )
 
 from ponte_serial import (
-    processar_linha,
-    PORTA_SERIAL,
     BAUD_RATE,
+    INSTRUMENTO_POR_POSICAO,
+    UID_PARA_MUSICA,
+    UID_PARA_EFEITO,
 )
 
+# =========================================================
+# CONFIGURAÇÕES E DIRETÓRIOS
+# =========================================================
 
-try:
-    import msvcrt
-    WINDOWS = True
-except ImportError:
-    WINDOWS = False
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 
+PORTA_SERIAL = os.getenv("PORTA_SERIAL", "COM5")
+HOST_LOCAL = os.getenv("HOST_LOCAL", "127.0.0.1")
+PORTA_LOCAL = int(os.getenv("PORTA_LOCAL", 8001))
 
-# ======================================================
-# CONFIGURAÇÕES
-# ======================================================
+PASTA_GRAVACOES = BASE_DIR / "gravacoes"
+PASTA_GRAVACOES.mkdir(exist_ok=True)
 
-# 64 compassos = 4 repetições do loop de 16 compassos
-# aproximadamente 2 minutos a 117 BPM
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# 64 compassos = aprox. 2 minutos a 117 BPM (limite máximo de gravação)
 COMPASSOS_GRAVACAO = 64
+DURACAO_MAXIMA_GRAVACAO = calcular_duracao_loop_segundos(
+    BPM_ALVO,
+    COMPASSOS_GRAVACAO,
+    TEMPOS_POR_COMPASSO,
+)
 
-PASTA_GRAVACOES = "gravacoes"
+URL_BACKEND_PUBLICO = os.getenv(
+    "URL_BACKEND_PUBLICO",
+    "https://rock-machine.onrender.com"
+).rstrip("/")
 
-# Servidor local da Rock Machine
-HOST_LOCAL = "127.0.0.1"
-PORTA_LOCAL = 8001
+URL_BACKEND_LOCAL = os.getenv(
+    "URL_BACKEND_LOCAL",
+    "http://127.0.0.1:8000"
+).rstrip("/")
 
 
-# ======================================================
+def resolver_url_backend() -> str:
+    """
+    Retorna a URL do backend para envio da música:
+    1. Se URL_BACKEND estiver definido no .env, tem prioridade total.
+    2. Se o backend local (porta 8000) estiver respondendo, usa o local.
+    3. Caso contrário, envia para o backend público hospedado no Render.
+    """
+    url_env = os.getenv("URL_BACKEND")
+    if url_env:
+        return url_env.rstrip("/")
+
+    try:
+        r = requests.get(f"{URL_BACKEND_LOCAL}/health", timeout=1.0)
+        if r.status_code == 200:
+            return URL_BACKEND_LOCAL
+    except Exception:
+        pass
+
+    return URL_BACKEND_PUBLICO
+
+
+# =========================================================
 # FASTAPI
-# ======================================================
+# =========================================================
 
 app = FastAPI(
-    title="RockMachine Local",
-    description="Servidor local da máquina RockMachine",
+    title="Rock Machine - Aplicação Física",
+    description="Servidor local da máquina física Rock Machine com RFID e suporte manual.",
 )
 
 app.add_middleware(
@@ -93,392 +123,578 @@ app.add_middleware(
 )
 
 
-BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = BASE_DIR / "frontend"
+# =========================================================
+# ESTADO DA SESSÃO E MOTOR DE ÁUDIO
+# =========================================================
 
+estado_sessao = {
+    "gravando": False,
+    "inicio": None,
+    "tempo": 0.0,
+    "camadas": [],
+    "arquivo_wav": None,
+    "sessao_id": None,
+    "publicada": False,
+    "arduino_conectado": False,
+}
+
+# Tipos ativos por posição: "normal" ou "efeito"
+_tipo_ativo_por_posicao: dict[int, str] = {}
+
+lock = threading.Lock()
+
+player = RockMachinePlayer(
+    PASTA_STEMS,
+    BPM_ALVO,
+    COMPASSOS_POR_LOOP,
+    TEMPOS_POR_COMPASSO,
+)
+
+
+# =========================================================
+# MODELOS DE REQUISIÇÃO
+# =========================================================
+
+class SimulacaoAdicionar(BaseModel):
+    uid: str
+    posicao: int
+
+
+class SimulacaoRemover(BaseModel):
+    posicao: int
+
+
+class DadosPublicacao(BaseModel):
+    nome: str
+    autor: str
+
+
+# =========================================================
+# GERENCIAMENTO DE CAMADAS E ESTADO
+# =========================================================
+
+def atualizar_tempo():
+    """Calcula o tempo atual da gravação."""
+    if estado_sessao["gravando"] and estado_sessao["inicio"]:
+        estado_sessao["tempo"] = time.time() - estado_sessao["inicio"]
+
+
+def registrar_camada(uid: str, posicao: int) -> dict | None:
+    """Registra uma camada musical associada a uma posição na sessão."""
+    dados = UID_PARA_MUSICA.get(uid)
+    if not dados:
+        return None
+
+    camada = {
+        "uid": uid,
+        "posicao": posicao,
+        "musica": dados["musica"],
+        "artista": dados.get("artista", ""),
+        "tipo": dados.get("tipo", INSTRUMENTO_POR_POSICAO.get(posicao, "other")),
+        "ativa": True,
+    }
+
+    # Substitui qualquer camada prévia na mesma posição
+    estado_sessao["camadas"] = [
+        c for c in estado_sessao["camadas"] if c["posicao"] != posicao
+    ]
+    estado_sessao["camadas"].append(camada)
+    return camada
+
+
+def remover_camada(posicao: int) -> None:
+    """Remove a camada associada à posição."""
+    estado_sessao["camadas"] = [
+        c for c in estado_sessao["camadas"] if c["posicao"] != posicao
+    ]
+
+
+# =========================================================
+# PROCESSAMENTO DE EVENTOS DO HARDWARE (ARDUINO / RFID)
+# =========================================================
+
+def processar_evento_hardware(linha: str) -> None:
+    """Processa eventos seriais do leitor RFID (ON:pos:uid ou OFF:pos)."""
+    linha = linha.strip()
+    if not linha:
+        return
+
+    if linha == "READY":
+        print("[HARDWARE] Arduino conectado e pronto para leitura.")
+        return
+
+    # -----------------------------------------------------
+    # EVENTO ON: Tag colocada no leitor RFID
+    # -----------------------------------------------------
+    if linha.startswith("ON:"):
+        partes = linha.split(":")
+        if len(partes) != 3:
+            print(f"[HARDWARE - AVISO] Linha ON inválida: {linha}")
+            return
+
+        _, pos_str, uid = partes
+        try:
+            posicao = int(pos_str)
+        except ValueError:
+            return
+
+        uid = uid.upper()
+
+        # Ficha de efeito sonoro imediato
+        if uid in UID_PARA_EFEITO:
+            musica, arquivo = UID_PARA_EFEITO[uid]
+            player.iniciar_efeito(posicao, musica, arquivo)
+            _tipo_ativo_por_posicao[posicao] = "efeito"
+            print(f"[HARDWARE] ⚡ Efeito ativado na posição {posicao}: {musica} / {arquivo}")
+            return
+
+        # Ficha de música/stem sincronizado
+        dados_musica = UID_PARA_MUSICA.get(uid)
+        if dados_musica:
+            instrumento = INSTRUMENTO_POR_POSICAO.get(posicao)
+            if not instrumento:
+                print(f"[HARDWARE - AVISO] Posição {posicao} sem instrumento mapeado.")
+                return
+
+            player.colocar_ficha(posicao, dados_musica["musica"], instrumento)
+            _tipo_ativo_por_posicao[posicao] = "normal"
+
+            with lock:
+                registrar_camada(uid, posicao)
+
+            print(
+                f"[HARDWARE] 🎵 RFID detectado na posição {posicao} ({instrumento}): "
+                f"{dados_musica['musica']} [UID: {uid}]"
+            )
+            return
+
+        print(f"[HARDWARE - AVISO] Tag UID {uid} não cadastrada em UID_PARA_MUSICA.")
+
+    # -----------------------------------------------------
+    # EVENTO OFF: Tag retirada do leitor RFID
+    # -----------------------------------------------------
+    elif linha.startswith("OFF:"):
+        partes = linha.split(":")
+        if len(partes) != 2:
+            print(f"[HARDWARE - AVISO] Linha OFF inválida: {linha}")
+            return
+
+        try:
+            posicao = int(partes[1])
+        except ValueError:
+            return
+
+        tipo = _tipo_ativo_por_posicao.pop(posicao, None)
+        if tipo == "efeito":
+            player.parar_efeito(posicao)
+            print(f"[HARDWARE] ⏹ Efeito parado na posição {posicao}.")
+        else:
+            player.retirar_ficha(posicao)
+            print(f"[HARDWARE] ⏹ Ficha retirada da posição {posicao}.")
+
+        with lock:
+            remover_camada(posicao)
+
+    else:
+        print(f"[HARDWARE - SERIAL] {linha}")
+
+
+# =========================================================
+# THREAD DE LEITURA SERIAL EM BACKGROUND
+# =========================================================
+
+stop_hardware_event = threading.Event()
+
+
+def thread_escuta_serial(stop_event: threading.Event) -> None:
+    """Escuta continuamente a porta serial do Arduino em background com auto-reconexão."""
+    aviso_desconectado = False
+
+    while not stop_event.is_set():
+        try:
+            with serial.Serial(PORTA_SERIAL, BAUD_RATE, timeout=0.5) as arduino:
+                with lock:
+                    estado_sessao["arduino_conectado"] = True
+                print(f"[SERIAL] Conectado na porta {PORTA_SERIAL} ({BAUD_RATE} baud)!")
+                time.sleep(2)  # aguarda inicialização do Arduino
+                aviso_desconectado = False
+
+                while not stop_event.is_set():
+                    linha = arduino.readline().decode(errors="ignore").strip()
+                    if linha:
+                        processar_evento_hardware(linha)
+
+        except (serial.SerialException, FileNotFoundError):
+            with lock:
+                estado_sessao["arduino_conectado"] = False
+            if not aviso_desconectado:
+                print(
+                    f"[AVISO] Porta serial {PORTA_SERIAL} não disponível no momento. "
+                    "A máquina funcionará em modo manual e tentará reconectar o hardware automaticamente."
+                )
+                aviso_desconectado = True
+            time.sleep(3)
+        except Exception as exc:
+            with lock:
+                estado_sessao["arduino_conectado"] = False
+            print(f"[SERIAL] Erro inesperado na comunicação serial: {exc}")
+            time.sleep(3)
+
+
+# =========================================================
+# THREAD DE MONITORAMENTO DE TEMPO LIMITE DE GRAVAÇÃO
+# =========================================================
+
+def monitor_tempo_gravacao(stop_event: threading.Event) -> None:
+    """Finaliza a gravação automaticamente caso ultrapasse a duração máxima."""
+    while not stop_event.is_set():
+        with lock:
+            if (
+                estado_sessao["gravando"]
+                and estado_sessao["inicio"] is not None
+                and (time.time() - estado_sessao["inicio"]) >= DURACAO_MAXIMA_GRAVACAO
+            ):
+                print(f"[GRAVAÇÃO] Limite máximo ({DURACAO_MAXIMA_GRAVACAO:.1f}s) atingido. Finalizando...")
+                duracao = DURACAO_MAXIMA_GRAVACAO
+                sessao_id = estado_sessao["sessao_id"]
+                caminho_wav = PASTA_GRAVACOES / f"rockmachine_{sessao_id}.wav"
+
+                player.parar_gravacao_e_salvar(str(caminho_wav), duracao)
+                player.parar_todos_os_sons()
+
+                estado_sessao["gravando"] = False
+                estado_sessao["inicio"] = None
+                estado_sessao["tempo"] = duracao
+                estado_sessao["arquivo_wav"] = str(caminho_wav)
+
+        time.sleep(0.5)
+
+
+# =========================================================
+# ROTAS DA INTERFACE WEB
+# =========================================================
 
 @app.get("/maquina")
 def pagina_maquina():
-    """
-    Abre a interface principal da Rock Machine.
-    """
+    """Interface principal da Rock Machine."""
     caminho = FRONTEND_DIR / "maquina.html"
-
     if not caminho.exists():
-        return {
-            "erro": "maquina.html não encontrado",
-            "caminho_esperado": str(caminho),
-        }
-
+        raise HTTPException(status_code=404, detail="maquina.html não encontrado.")
     return FileResponse(caminho)
 
 
-# ======================================================
-# SERVIDOR FASTAPI
-# ======================================================
-
-def iniciar_servidor():
-    """
-    Inicia o FastAPI em uma thread separada para que o programa
-    continue escutando o Arduino normalmente.
-    """
-
-    print()
-    print("==============================================")
-    print(" ROCK MACHINE - SERVIDOR LOCAL")
-    print("==============================================")
-    print(f" Interface: http://{HOST_LOCAL}:{PORTA_LOCAL}/maquina")
-    print("==============================================")
-    print()
-
-    uvicorn.run(
-        app,
-        host=HOST_LOCAL,
-        port=PORTA_LOCAL,
-        log_level="warning",
-    )
+@app.get("/publicar")
+def pagina_publicar():
+    """Interface de finalização e créditos para publicação."""
+    caminho = FRONTEND_DIR / "publicar.html"
+    if not caminho.exists():
+        raise HTTPException(status_code=404, detail="publicar.html não encontrado.")
+    return FileResponse(caminho)
 
 
-# ======================================================
-# ARQUIVO DE GRAVAÇÃO
-# ======================================================
+# =========================================================
+# ROTAS DE SESSÃO & CONTROLE
+# =========================================================
 
-def nome_para_arquivo(nome_musica):
-    """
-    Transforma o nome da música em um nome de arquivo seguro.
-    """
-
-    seguro = "".join(
-        c if c.isalnum() or c in " -_" else "_"
-        for c in nome_musica
-    )
-
-    seguro = seguro.strip().replace(" ", "_")
-
-    return f"{seguro or 'sessao'}.wav"
-
-
-# ======================================================
-# MAIN
-# ======================================================
-
-def main():
-
-    if not WINDOWS:
-        print(
-            "AVISO: 'msvcrt' não disponível "
-            "(isso não é Windows). Rode no Windows."
-        )
-        return
-
-    # --------------------------------------------------
-    # Pasta das gravações
-    # --------------------------------------------------
-
-    Path(PASTA_GRAVACOES).mkdir(exist_ok=True)
+@app.get("/sessao/status")
+def obter_status():
+    """Retorna o estado atual da gravação, tempo e camadas ativas."""
+    with lock:
+        atualizar_tempo()
+        return {
+            "gravando": estado_sessao["gravando"],
+            "tempo": round(estado_sessao["tempo"], 1),
+            "camadas": estado_sessao["camadas"],
+            "arquivo_wav": estado_sessao["arquivo_wav"],
+            "sessao_id": estado_sessao["sessao_id"],
+            "publicada": estado_sessao["publicada"],
+            "arduino_conectado": estado_sessao["arduino_conectado"],
+        }
 
 
-    # --------------------------------------------------
-    # Duração da gravação
-    # --------------------------------------------------
+@app.post("/sessao/iniciar")
+def iniciar_sessao():
+    """Inicia uma nova sessão de gravação musical."""
+    with lock:
+        if estado_sessao["gravando"]:
+            raise HTTPException(status_code=400, detail="Já existe uma sessão em andamento.")
 
-    duracao_gravacao_seg = calcular_duracao_loop_segundos(
-        BPM_ALVO,
-        COMPASSOS_GRAVACAO,
-        TEMPOS_POR_COMPASSO,
-    )
+        estado_sessao["gravando"] = True
+        estado_sessao["inicio"] = time.time()
+        estado_sessao["tempo"] = 0.0
+        estado_sessao["arquivo_wav"] = None
+        estado_sessao["sessao_id"] = str(uuid.uuid4())
+        estado_sessao["publicada"] = False
 
-    print(
-        f"Duração fixa de cada gravação: "
-        f"{duracao_gravacao_seg:.1f}s "
-        f"({COMPASSOS_GRAVACAO} compassos a {BPM_ALVO} BPM)"
-    )
+        player.iniciar_gravacao()
+        print(f"[SESSÃO] Nova gravação iniciada: ID {estado_sessao['sessao_id']}")
 
-
-    # --------------------------------------------------
-    # Inicia servidor FastAPI
-    # --------------------------------------------------
-
-    servidor = threading.Thread(
-        target=iniciar_servidor,
-        daemon=True,
-    )
-
-    servidor.start()
+        return {
+            "sucesso": True,
+            "sessao_id": estado_sessao["sessao_id"],
+        }
 
 
-    # --------------------------------------------------
-    # Conecta ao Arduino
-    # --------------------------------------------------
+@app.post("/sessao/finalizar")
+def finalizar_sessao():
+    """Finaliza a sessão atual, renderiza o áudio final em WAV e para os sons ao vivo."""
+    with lock:
+        if not estado_sessao["gravando"]:
+            raise HTTPException(status_code=400, detail="Não existe uma sessão sendo gravada.")
 
-    print(
-        f"Conectando na porta "
-        f"{PORTA_SERIAL} ({BAUD_RATE} baud)..."
-    )
+        atualizar_tempo()
+        duracao = estado_sessao["tempo"]
+        if duracao <= 0:
+            duracao = 1.0
+
+        sessao_id = estado_sessao["sessao_id"]
+        caminho_wav = PASTA_GRAVACOES / f"rockmachine_{sessao_id}.wav"
+
+        # 1. Renderiza matematicamente o WAV final com todos os eventos
+        player.parar_gravacao_e_salvar(str(caminho_wav), duracao)
+
+        # 2. Para a reprodução ao vivo
+        player.parar_todos_os_sons()
+
+        # 3. Atualiza estado
+        estado_sessao["gravando"] = False
+        estado_sessao["inicio"] = None
+        estado_sessao["tempo"] = duracao
+        estado_sessao["arquivo_wav"] = str(caminho_wav)
+
+        print(f"[SESSÃO] Sessão finalizada. WAV salvo em: {caminho_wav.resolve()}")
+
+        return {
+            "sucesso": True,
+            "arquivo_wav": str(caminho_wav),
+            "tempo": round(duracao, 1),
+            "camadas": estado_sessao["camadas"],
+        }
+
+
+@app.get("/sessao/finalizada")
+def obter_sessao_finalizada():
+    """Retorna os dados da última sessão finalizada para a tela de publicação."""
+    with lock:
+        caminho_wav = estado_sessao["arquivo_wav"]
+        if not caminho_wav:
+            raise HTTPException(status_code=404, detail="Nenhuma sessão finalizada encontrada.")
+
+        caminho = Path(caminho_wav)
+        if not caminho.exists():
+            raise HTTPException(status_code=404, detail="O arquivo WAV da sessão não foi encontrado.")
+
+        return {
+            "arquivo_wav": str(caminho),
+            "tempo": round(estado_sessao["tempo"], 1),
+            "camadas": estado_sessao["camadas"],
+            "sessao_id": estado_sessao["sessao_id"],
+            "publicada": estado_sessao["publicada"],
+        }
+
+
+@app.post("/sessao/publicar")
+def publicar_sessao(dados: DadosPublicacao):
+    """Envia a gravação e metadados ao backend para entrar na playlist pública."""
+    nome = dados.nome.strip()
+    autor = dados.autor.strip()
+
+    if not nome:
+        raise HTTPException(status_code=400, detail="Informe o nome da música.")
+    if not autor:
+        raise HTTPException(status_code=400, detail="Informe o nome do autor.")
+
+    with lock:
+        caminho_wav = estado_sessao["arquivo_wav"]
+        camadas = list(estado_sessao["camadas"])
+        publicada = estado_sessao["publicada"]
+
+    if not caminho_wav:
+        raise HTTPException(status_code=400, detail="Nenhuma música foi finalizada.")
+    if publicada:
+        raise HTTPException(status_code=400, detail="Esta sessão já foi publicada.")
+
+    caminho = Path(caminho_wav)
+    if not caminho.exists():
+        raise HTTPException(status_code=404, detail=f"Arquivo WAV não encontrado: {caminho}")
+
+    backend_base = resolver_url_backend()
+    url = f"{backend_base}/musicas/upload"
+    print(f"[PUBLICAÇÃO] Enviando música '{nome}' ({autor}) para: {url}")
 
     try:
-        arduino = serial.Serial(
-            PORTA_SERIAL,
-            BAUD_RATE,
-            timeout=0.1,
+        with open(caminho, "rb") as arquivo:
+            files = {
+                "arquivo": (caminho.name, arquivo, "audio/wav")
+            }
+            data = {
+                "nome": nome,
+                "autor": autor,
+                "camadas": json.dumps(camadas, ensure_ascii=False),
+            }
+            resposta = requests.post(url, data=data, files=files, timeout=120)
+
+    except requests.exceptions.RequestException as erro:
+        print(f"[ERRO DE CONEXÃO] Falha ao enviar para {url}: {erro}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Não foi possível conectar ao backend ({backend_base}): {erro}",
         )
 
-    except serial.SerialException as e:
-        print(
-            f"[ERRO] Não consegui abrir "
-            f"a porta serial: {e}"
-        )
-
-        sys.exit(1)
-
-
-    # --------------------------------------------------
-    # Aguarda Arduino inicializar
-    # --------------------------------------------------
-
-    time.sleep(2)
-
-
-    # --------------------------------------------------
-    # Carrega motor de áudio
-    # --------------------------------------------------
-
-    print("Carregando motor de áudio...")
-
-    player = RockMachinePlayer(
-        PASTA_STEMS,
-        BPM_ALVO,
-        COMPASSOS_POR_LOOP,
-        TEMPOS_POR_COMPASSO,
-    )
-
-
-    # --------------------------------------------------
-    # Estado da gravação
-    # --------------------------------------------------
-
-    gravando = False
-
-    caminho_saida = None
-
-    tempo_inicio = None
-
-
-    # --------------------------------------------------
-    # Inicia stream de áudio
-    # --------------------------------------------------
-
-    with player.iniciar_stream():
-
-        print()
-        print("==============================================")
-        print("       ROCK MACHINE - PRONTO")
-        print("==============================================")
-        print()
-        print(
-            f"Interface web:"
-            f" http://{HOST_LOCAL}:{PORTA_LOCAL}/maquina"
-        )
-        print()
-        print("Controles temporários pelo teclado:")
-        print("  r   -> começar a gravar")
-        print("  s   -> cancelar a gravação")
-        print("  ESC -> sair")
-        print()
-        print("Interaja com as fichas normalmente.")
-        print()
-
-
+    if not resposta.ok:
         try:
+            detalhe = resposta.json().get("detail", "Erro desconhecido no backend.")
+        except Exception:
+            detalhe = resposta.text
+        raise HTTPException(status_code=502, detail=f"O backend recusou a publicação: {detalhe}")
 
-            while True:
+    try:
+        resultado = resposta.json()
+    except Exception:
+        resultado = {"mensagem": resposta.text}
 
-                # ==================================================
-                # LÊ O ARDUINO
-                # ==================================================
+    with lock:
+        estado_sessao["publicada"] = True
 
-                linha = arduino.readline().decode(
-                    errors="ignore"
-                )
-
-                if linha:
-                    processar_linha(
-                        linha,
-                        player,
-                    )
-
-
-                # ==================================================
-                # FINALIZAÇÃO AUTOMÁTICA POR TEMPO
-                # ==================================================
-
-                if (
-                    gravando
-                    and tempo_inicio is not None
-                    and (
-                        time.time() - tempo_inicio
-                    ) >= duracao_gravacao_seg
-                ):
-
-                    player.parar_gravacao_e_salvar(
-                        caminho_saida,
-                        duracao_gravacao_seg,
-                    )
-
-                    gravando = False
-
-                    print()
-                    print(
-                        "[GRAVAÇÃO] Finalizada automaticamente."
-                    )
-
-                    print(
-                        f"Arquivo salvo em:"
-                        f" {caminho_saida.resolve()}"
-                    )
-
-                    print()
-                    print(
-                        "A próxima etapa será disponibilizar "
-                        "essa gravação para publicação pela interface web."
-                    )
-
-                    print()
+    print(f"[PUBLICAÇÃO] Sucesso! Música registrada na playlist pública.")
+    return {
+        "sucesso": True,
+        "mensagem": "Música publicada com sucesso!",
+        "musica": resultado,
+    }
 
 
-                # ==================================================
-                # TECLADO
-                # ==================================================
+@app.post("/sessao/cancelar")
+def cancelar_sessao():
+    """Cancela a gravação em andamento e descarta os dados."""
+    with lock:
+        if not estado_sessao["gravando"]:
+            raise HTTPException(status_code=400, detail="Não existe uma sessão em andamento.")
 
-                if msvcrt.kbhit():
+        player._gravando = False
+        player._eventos_gravacao = []
+        player.parar_todos_os_sons()
 
-                    tecla = (
-                        msvcrt.getch()
-                        .decode(errors="ignore")
-                        .lower()
-                    )
+        estado_sessao["gravando"] = False
+        estado_sessao["inicio"] = None
+        estado_sessao["tempo"] = 0.0
+        estado_sessao["camadas"] = []
+        estado_sessao["arquivo_wav"] = None
+        estado_sessao["sessao_id"] = None
+        estado_sessao["publicada"] = False
 
-
-                    # ----------------------------------------------
-                    # ESC
-                    # ----------------------------------------------
-
-                    if tecla == "\x1b":
-
-                        print()
-                        print("Encerrando...")
-                        break
-
-
-                    # ----------------------------------------------
-                    # R - COMEÇAR GRAVAÇÃO
-                    # ----------------------------------------------
-
-                    if tecla == "r":
-
-                        if gravando:
-
-                            print(
-                                "[AVISO] Já está gravando."
-                            )
-
-                        else:
-
-                            # Por enquanto usamos um nome automático.
-                            # Depois o publicar.html vai receber o
-                            # nome escolhido pelo usuário.
-
-                            nome_arquivo = (
-                                f"sessao_"
-                                f"{time.strftime('%Y%m%d_%H%M%S')}"
-                            )
-
-                            caminho_saida = (
-                                Path(PASTA_GRAVACOES)
-                                / nome_para_arquivo(
-                                    nome_arquivo
-                                )
-                            )
-
-                            player.iniciar_gravacao()
-
-                            tempo_inicio = time.time()
-
-                            gravando = True
-
-                            print()
-                            print(
-                                "=============================================="
-                            )
-                            print("       GRAVAÇÃO INICIADA")
-                            print(
-                                "=============================================="
-                            )
-                            print(
-                                f"Duração: "
-                                f"{duracao_gravacao_seg:.1f}s"
-                            )
-                            print(
-                                "Interaja com as fichas agora."
-                            )
-                            print()
+        print("[SESSÃO] Gravação cancelada.")
+        return {"sucesso": True, "mensagem": "Sessão cancelada."}
 
 
-                    # ----------------------------------------------
-                    # S - CANCELAR
-                    # ----------------------------------------------
+# =========================================================
+# CONTROLES MANUAIS (FALLBACK E DEMONSTRAÇÃO WEB)
+# =========================================================
 
-                    elif tecla == "s":
+@app.post("/simulacao/adicionar")
+def simulacao_adicionar(dados: SimulacaoAdicionar):
+    """Permite selecionar uma faixa manualmente pela interface web."""
+    uid = dados.uid.upper()
+    musica = UID_PARA_MUSICA.get(uid)
+    if not musica:
+        raise HTTPException(status_code=404, detail=f"UID não encontrado: {uid}")
 
-                        if not gravando:
+    posicao = dados.posicao
+    instrumento = INSTRUMENTO_POR_POSICAO.get(posicao)
+    if not instrumento:
+        raise HTTPException(status_code=400, detail="Posição inválida. Use 0 (bateria), 1 (vocal) ou 2 (outros).")
 
-                            print(
-                                "[AVISO] "
-                                "Não está gravando."
-                            )
+    player.colocar_ficha(posicao, musica["musica"], instrumento)
+    _tipo_ativo_por_posicao[posicao] = "normal"
 
-                        else:
+    with lock:
+        camada = registrar_camada(uid, posicao)
 
-                            player.parar_gravacao_e_salvar(
-                                None,
-                                duracao_gravacao_seg,
-                            )
-
-                            gravando = False
-
-                            caminho_saida = None
-
-                            tempo_inicio = None
-
-                            print()
-                            print(
-                                "[GRAVAÇÃO] "
-                                "Cancelada."
-                            )
-                            print(
-                                "Nada foi salvo ou publicado."
-                            )
-                            print()
+    print(f"[MANUAL] Camada adicionada na posição {posicao} ({instrumento}): {musica['musica']}")
+    return {"sucesso": True, "camada": camada}
 
 
-        except KeyboardInterrupt:
+@app.post("/simulacao/remover")
+def simulacao_remover(dados: SimulacaoRemover):
+    """Permite remover uma faixa manualmente pela interface web."""
+    posicao = dados.posicao
+    tipo = _tipo_ativo_por_posicao.pop(posicao, None)
+    if tipo == "efeito":
+        player.parar_efeito(posicao)
+    else:
+        player.retirar_ficha(posicao)
 
-            print()
-            print("Encerrando...")
+    with lock:
+        remover_camada(posicao)
+
+    print(f"[MANUAL] Camada removida da posição {posicao}.")
+    return {"sucesso": True, "posicao": posicao}
 
 
-        finally:
+@app.get("/fichas/disponiveis")
+def listar_fichas_disponiveis():
+    """Retorna todas as fichas e stems cadastrados para a seleção manual."""
+    fichas = []
+    for uid, info in UID_PARA_MUSICA.items():
+        fichas.append({
+            "uid": uid,
+            "musica": info["musica"],
+            "artista": info.get("artista", ""),
+            "tipo": info.get("tipo", "other"),
+            "posicao": 0 if info.get("tipo") == "drums" else (1 if info.get("tipo") == "vocals" else 2),
+        })
+    return fichas
 
-            arduino.close()
 
-            print()
-            print("Porta serial fechada.")
-            print("Rock Machine encerrada.")
+# =========================================================
+# EXECUÇÃO PRINCIPAL
+# =========================================================
 
+def main():
+    print()
+    print("=========================================================")
+    print("         ROCK MACHINE - APLICAÇÃO FÍSICA & SESSÃO        ")
+    print("=========================================================")
+    print(f" Servidor Web:      http://{HOST_LOCAL}:{PORTA_LOCAL}")
+    print(f" Interface Máquina: http://{HOST_LOCAL}:{PORTA_LOCAL}/maquina")
+    print(f" Tela Publicação:   http://{HOST_LOCAL}:{PORTA_LOCAL}/publicar")
+    print(f" Porta Serial:      {PORTA_SERIAL} ({BAUD_RATE} baud)")
+    print(f" Backend Destino:   {resolver_url_backend()}")
+    print("=========================================================")
+    print()
 
-# ======================================================
-# EXECUÇÃO
-# ======================================================
+    # Inicia a thread de escuta serial do Arduino
+    serial_thread = threading.Thread(
+        target=thread_escuta_serial,
+        args=(stop_hardware_event,),
+        daemon=True,
+    )
+    serial_thread.start()
+
+    # Inicia o monitor de tempo de gravação
+    monitor_thread = threading.Thread(
+        target=monitor_tempo_gravacao,
+        args=(stop_hardware_event,),
+        daemon=True,
+    )
+    monitor_thread.start()
+
+    # Inicia o stream de áudio contínuo e roda o servidor FastAPI
+    try:
+        with player.iniciar_stream():
+            uvicorn.run(
+                app,
+                host=HOST_LOCAL,
+                port=PORTA_LOCAL,
+                log_level="info",
+            )
+    except KeyboardInterrupt:
+        print("\n[ENCERRANDO] Fechando aplicação...")
+    finally:
+        stop_hardware_event.set()
+        player.parar_todos_os_sons()
+        print("[ENCERRADO] Rock Machine finalizada com sucesso.")
+
 
 if __name__ == "__main__":
     main()
