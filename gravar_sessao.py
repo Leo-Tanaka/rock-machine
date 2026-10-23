@@ -43,7 +43,7 @@ except ImportError:
 # ============ CONFIGURAÇÕES ============
 
 # 64 compassos = 4 repetições do loop de 16 compassos (~2min a 117 BPM)
-COMPASSOS_GRAVACAO = 64
+COMPASSOS_GRAVACAO = 16
 
 PASTA_GRAVACOES = "gravacoes"
 
