@@ -232,12 +232,21 @@ def registrar_camada(
     if not dados:
         return None
 
+    if isinstance(dados, dict):
+        musica_nome = dados.get("musica", "")
+        artista_nome = dados.get("artista", "")
+        tipo_nome = dados.get("tipo", "")
+    else:
+        musica_nome = str(dados)
+        artista_nome = ""
+        tipo_nome = {0: "drums", 1: "other", 2: "vocals"}.get(posicao, "")
+
     camada = {
         "uid": uid,
         "posicao": posicao,
-        "musica": dados["musica"],
-        "artista": dados.get("artista", ""),
-        "tipo": dados.get("tipo", ""),
+        "musica": musica_nome,
+        "artista": artista_nome,
+        "tipo": tipo_nome,
         "ativa": True,
     }
 
@@ -697,9 +706,10 @@ def simulacao_adicionar(
         # Simula exatamente a ação que o RFID
         # faria através da ponte serial.
 
+        nome_musica = musica.get("musica") if isinstance(musica, dict) else str(musica)
         player.colocar_ficha(
             posicao,
-            musica["musica"],
+            nome_musica,
             instrumento,
         )
 

@@ -1,22 +1,25 @@
 """
 Rock Machine - Servidor da Máquina Física & Sessão de Gravação
 ====================================================================
-Controla a aplicação física (Arduino + Leitores RFID MFRC522)
-com suporte híbrido a seleção manual de faixas via interface web.
+Controla a aplicação física (Arduinos + Leitores RFID MFRC522)
+com suporte híbrido a seleção manual de faixas via interface web
+e publicação direta na playlist pública.
 
 Recursos:
-- Escuta a porta serial do Arduino em background (tolerante a falhas / reconexão);
+- Escuta as portas seriais dos Arduinos em background (múltiplos leitores, reconexão automática);
 - Atualiza o estado da sessão (camadas, tempo, gravação) em tempo real;
 - Reproduz os stems de áudio ao vivo sincronizados via RockMachinePlayer;
 - Interface web local (http://127.0.0.1:8001/maquina);
 - Renderiza o áudio final em WAV ao finalizar;
-- Envia diretamente para o backend público/local (/publicar) para alimentar a playlist.
+- Envia diretamente para o backend público/local (/publicar) para alimentar a playlist;
+- Fornece funções utilitárias para player_hibrido.py e teste_publicar.py.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import queue
 import sys
 import threading
 import time
@@ -25,7 +28,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 import requests
-import serial
 import uvicorn
 
 from fastapi import FastAPI, HTTPException
@@ -43,6 +45,9 @@ from rockmachine_motor import (
 )
 
 from ponte_serial import (
+    LeitoresSerial,
+    PORTAS_SERIAIS,
+    PORTA_SERIAL,
     BAUD_RATE,
     INSTRUMENTO_POR_POSICAO,
     UID_PARA_MUSICA,
@@ -56,7 +61,6 @@ from ponte_serial import (
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
-PORTA_SERIAL = os.getenv("PORTA_SERIAL", "COM5")
 HOST_LOCAL = os.getenv("HOST_LOCAL", "127.0.0.1")
 PORTA_LOCAL = int(os.getenv("PORTA_LOCAL", 8001))
 
@@ -83,6 +87,25 @@ URL_BACKEND_LOCAL = os.getenv(
     "http://127.0.0.1:8000"
 ).rstrip("/")
 
+# Mapa de artistas para enriquecer a exibição visual na interface
+ARTISTA_POR_MUSICA = {
+    "Billie Jean": "Michael Jackson",
+    "Numb": "Linkin Park",
+    "Paparazzi": "Lady Gaga",
+    "Tudo Que Ela Gosta De Escutar": "Charlie Brown Jr.",
+    "Get Lucky": "Daft Punk",
+    "Another One Bites the Dust": "Queen",
+    "Tempos Modernos": "Lulu Santos",
+    "Smells Like Teen Spirit": "Nirvana",
+    "Payphone": "Maroon 5",
+    "In the End": "Linkin Park",
+    "Blinding Lights": "The Weeknd",
+    "Blinding Ligths": "The Weeknd",
+    "Espresso": "Sabrina Carpenter",
+    "Feel Good Inc": "Gorillaz",
+    "Levitating": "Dua Lipa",
+}
+
 
 def resolver_url_backend() -> str:
     """
@@ -103,6 +126,75 @@ def resolver_url_backend() -> str:
         pass
 
     return URL_BACKEND_PUBLICO
+
+
+# =========================================================
+# FUNÇÕES UTILITÁRIAS EXPORTADAS (CLI / PLAYER HÍBRIDO)
+# =========================================================
+
+def pedir_dados_publicacao() -> tuple[str, str]:
+    """Solicita via terminal o nome da música e do autor."""
+    print()
+    nome = input("Nome da música: ").strip() or time.strftime("Sessao %Y-%m-%d %H:%M")
+    autor = input("Nome do autor: ").strip() or "RockMachine"
+    return nome, autor
+
+
+def nome_para_arquivo(nome_musica: str) -> str:
+    """Transforma o nome da música num nome de arquivo seguro."""
+    seguro = "".join(c if c.isalnum() or c in " -_" else "_" for c in nome_musica)
+    seguro = seguro.strip().replace(" ", "_")
+    return f"{seguro or 'sessao'}.wav"
+
+
+def publicar_musica(
+    caminho_wav: str | Path,
+    nome: str,
+    autor: str,
+    url_base: str | None = None,
+    camadas: list | None = None,
+) -> bool:
+    """
+    Envia o WAV direto pro backend da playlist (/musicas/upload),
+    exatamente como o publicar.html faz. Retorna True se publicou com sucesso.
+    """
+    if url_base is None:
+        url_base = resolver_url_backend()
+    url = f"{url_base}/musicas/upload"
+    print(f"\n[PUBLICAÇÃO] Publicando '{nome}' em {url} ...")
+
+    try:
+        caminho = Path(caminho_wav)
+        if not caminho.exists():
+            print(f"[ERRO] Arquivo não encontrado: {caminho}")
+            return False
+
+        with open(caminho, "rb") as f:
+            files = {"arquivo": (caminho.name, f, "audio/wav")}
+            data = {"nome": nome, "autor": autor}
+            if camadas is not None:
+                data["camadas"] = json.dumps(camadas, ensure_ascii=False) if not isinstance(camadas, str) else camadas
+            resposta = requests.post(url, data=data, files=files, timeout=120)
+    except requests.exceptions.RequestException as e:
+        print(f"[ERRO] Não consegui conectar no backend: {e}")
+        print(f"O arquivo continua salvo localmente em: {caminho_wav}")
+        return False
+
+    if resposta.ok:
+        try:
+            payload = resposta.json()
+        except Exception:
+            payload = {}
+        print(f"[PUBLICADO] '{payload.get('nome', nome)}' já está na playlist pública!")
+        return True
+
+    try:
+        detalhe = resposta.json().get("detail", resposta.text)
+    except Exception:
+        detalhe = resposta.text
+    print(f"[ERRO] O backend recusou a publicação: {detalhe}")
+    print(f"O arquivo continua salvo localmente em: {caminho_wav}")
+    return False
 
 
 # =========================================================
@@ -185,12 +277,21 @@ def registrar_camada(uid: str, posicao: int) -> dict | None:
     if not dados:
         return None
 
+    if isinstance(dados, dict):
+        musica_nome = dados.get("musica", "")
+        artista_nome = dados.get("artista", "")
+        tipo_inst = dados.get("tipo", INSTRUMENTO_POR_POSICAO.get(posicao, "other"))
+    else:
+        musica_nome = str(dados)
+        artista_nome = ARTISTA_POR_MUSICA.get(musica_nome, "")
+        tipo_inst = INSTRUMENTO_POR_POSICAO.get(posicao, "other")
+
     camada = {
         "uid": uid,
         "posicao": posicao,
-        "musica": dados["musica"],
-        "artista": dados.get("artista", ""),
-        "tipo": dados.get("tipo", INSTRUMENTO_POR_POSICAO.get(posicao, "other")),
+        "musica": musica_nome,
+        "artista": artista_nome,
+        "tipo": tipo_inst,
         "ativa": True,
     }
 
@@ -214,7 +315,7 @@ def remover_camada(posicao: int) -> None:
 # =========================================================
 
 def processar_evento_hardware(linha: str) -> None:
-    """Processa eventos seriais do leitor RFID (ON:pos:uid ou OFF:pos)."""
+    """Processa eventos seriais dos leitores RFID (ON:pos:uid ou OFF:pos)."""
     linha = linha.strip()
     if not linha:
         return
@@ -238,7 +339,7 @@ def processar_evento_hardware(linha: str) -> None:
         except ValueError:
             return
 
-        uid = uid.upper()
+        uid = uid.strip()
 
         # Ficha de efeito sonoro imediato
         if uid in UID_PARA_EFEITO:
@@ -256,7 +357,8 @@ def processar_evento_hardware(linha: str) -> None:
                 print(f"[HARDWARE - AVISO] Posição {posicao} sem instrumento mapeado.")
                 return
 
-            player.colocar_ficha(posicao, dados_musica["musica"], instrumento)
+            nome_musica = dados_musica.get("musica") if isinstance(dados_musica, dict) else str(dados_musica)
+            player.colocar_ficha(posicao, nome_musica, instrumento)
             _tipo_ativo_por_posicao[posicao] = "normal"
 
             with lock:
@@ -264,11 +366,11 @@ def processar_evento_hardware(linha: str) -> None:
 
             print(
                 f"[HARDWARE] 🎵 RFID detectado na posição {posicao} ({instrumento}): "
-                f"{dados_musica['musica']} [UID: {uid}]"
+                f"{nome_musica} [UID: {uid}]"
             )
             return
 
-        print(f"[HARDWARE - AVISO] Tag UID {uid} não cadastrada em UID_PARA_MUSICA.")
+        print(f"[HARDWARE - AVISO] Tag UID {uid} não cadastrada em UID_PARA_MUSICA ou UID_PARA_EFEITO.")
 
     # -----------------------------------------------------
     # EVENTO OFF: Tag retirada do leitor RFID
@@ -304,41 +406,30 @@ def processar_evento_hardware(linha: str) -> None:
 # =========================================================
 
 stop_hardware_event = threading.Event()
+leitores_hardware: LeitoresSerial | None = None
 
 
 def thread_escuta_serial(stop_event: threading.Event) -> None:
-    """Escuta continuamente a porta serial do Arduino em background com auto-reconexão."""
-    aviso_desconectado = False
+    """Escuta continuamente as portas seriais dos Arduinos em background com auto-reconexão."""
+    global leitores_hardware
+    leitores = LeitoresSerial(PORTAS_SERIAIS, BAUD_RATE)
+    leitores_hardware = leitores
+    leitores.iniciar()
+    print(f"[SERIAL] Gerenciador serial ativo em {len(PORTAS_SERIAIS)} porta(s): {', '.join(PORTAS_SERIAIS)} ({BAUD_RATE} baud)")
 
     while not stop_event.is_set():
+        with lock:
+            estado_sessao["arduino_conectado"] = len(leitores.conectadas) > 0
+
         try:
-            with serial.Serial(PORTA_SERIAL, BAUD_RATE, timeout=0.5) as arduino:
-                with lock:
-                    estado_sessao["arduino_conectado"] = True
-                print(f"[SERIAL] Conectado na porta {PORTA_SERIAL} ({BAUD_RATE} baud)!")
-                time.sleep(2)  # aguarda inicialização do Arduino
-                aviso_desconectado = False
+            linha = leitores.fila.get(timeout=0.2)
+            processar_evento_hardware(linha)
+        except queue.Empty:
+            continue
+        except Exception as e:
+            print(f"[SERIAL - ERRO] Falha ao processar evento serial: {e}")
 
-                while not stop_event.is_set():
-                    linha = arduino.readline().decode(errors="ignore").strip()
-                    if linha:
-                        processar_evento_hardware(linha)
-
-        except (serial.SerialException, FileNotFoundError):
-            with lock:
-                estado_sessao["arduino_conectado"] = False
-            if not aviso_desconectado:
-                print(
-                    f"[AVISO] Porta serial {PORTA_SERIAL} não disponível no momento. "
-                    "A máquina funcionará em modo manual e tentará reconectar o hardware automaticamente."
-                )
-                aviso_desconectado = True
-            time.sleep(3)
-        except Exception as exc:
-            with lock:
-                estado_sessao["arduino_conectado"] = False
-            print(f"[SERIAL] Erro inesperado na comunicação serial: {exc}")
-            time.sleep(3)
+    leitores.fechar()
 
 
 # =========================================================
@@ -594,23 +685,24 @@ def cancelar_sessao():
 @app.post("/simulacao/adicionar")
 def simulacao_adicionar(dados: SimulacaoAdicionar):
     """Permite selecionar uma faixa manualmente pela interface web."""
-    uid = dados.uid.upper()
-    musica = UID_PARA_MUSICA.get(uid)
-    if not musica:
+    uid = dados.uid.strip()
+    musica_dado = UID_PARA_MUSICA.get(uid)
+    if not musica_dado:
         raise HTTPException(status_code=404, detail=f"UID não encontrado: {uid}")
 
     posicao = dados.posicao
     instrumento = INSTRUMENTO_POR_POSICAO.get(posicao)
     if not instrumento:
-        raise HTTPException(status_code=400, detail="Posição inválida. Use 0 (bateria), 1 (vocal) ou 2 (outros).")
+        raise HTTPException(status_code=400, detail="Posição inválida. Use 0 (bateria), 1 (outros) ou 2 (vocal).")
 
-    player.colocar_ficha(posicao, musica["musica"], instrumento)
+    nome_musica = musica_dado.get("musica") if isinstance(musica_dado, dict) else str(musica_dado)
+    player.colocar_ficha(posicao, nome_musica, instrumento)
     _tipo_ativo_por_posicao[posicao] = "normal"
 
     with lock:
         camada = registrar_camada(uid, posicao)
 
-    print(f"[MANUAL] Camada adicionada na posição {posicao} ({instrumento}): {musica['musica']}")
+    print(f"[MANUAL] Camada adicionada na posição {posicao} ({instrumento}): {nome_musica}")
     return {"sucesso": True, "camada": camada}
 
 
@@ -636,12 +728,20 @@ def listar_fichas_disponiveis():
     """Retorna todas as fichas e stems cadastrados para a seleção manual."""
     fichas = []
     for uid, info in UID_PARA_MUSICA.items():
+        if isinstance(info, dict):
+            musica = info.get("musica", "")
+            artista = info.get("artista", "")
+            tipo = info.get("tipo", "other")
+        else:
+            musica = str(info)
+            artista = ARTISTA_POR_MUSICA.get(musica, "")
+            tipo = "drums"
         fichas.append({
             "uid": uid,
-            "musica": info["musica"],
-            "artista": info.get("artista", ""),
-            "tipo": info.get("tipo", "other"),
-            "posicao": 0 if info.get("tipo") == "drums" else (1 if info.get("tipo") == "vocals" else 2),
+            "musica": musica,
+            "artista": artista,
+            "tipo": tipo,
+            "posicao": 0 if tipo == "drums" else (1 if tipo == "other" else 2),
         })
     return fichas
 
@@ -658,12 +758,12 @@ def main():
     print(f" Servidor Web:      http://{HOST_LOCAL}:{PORTA_LOCAL}")
     print(f" Interface Máquina: http://{HOST_LOCAL}:{PORTA_LOCAL}/maquina")
     print(f" Tela Publicação:   http://{HOST_LOCAL}:{PORTA_LOCAL}/publicar")
-    print(f" Porta Serial:      {PORTA_SERIAL} ({BAUD_RATE} baud)")
+    print(f" Portas Seriais:    {', '.join(PORTAS_SERIAIS)} ({BAUD_RATE} baud)")
     print(f" Backend Destino:   {resolver_url_backend()}")
     print("=========================================================")
     print()
 
-    # Inicia a thread de escuta serial do Arduino
+    # Inicia a thread de escuta serial dos Arduinos
     serial_thread = threading.Thread(
         target=thread_escuta_serial,
         args=(stop_hardware_event,),
